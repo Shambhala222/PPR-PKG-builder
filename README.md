@@ -1,4 +1,4 @@
-# PPR-PKG builder for macOS by Shambhala222
+# PPR-PKG-builder (MacOS Silicon)
 
 An unofficial macOS port by Shambhala222 of
 [Drakmor](https://github.com/drakmor)'s Windows PPR-PKG builder and
