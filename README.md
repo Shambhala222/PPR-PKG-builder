@@ -6,21 +6,21 @@ An unofficial macOS port by Shambhala222 of
 This is an independent community edition, not an official Drakmor or
 SvenGDK release.
 
-The app builds a debug PS5 `.pkg` from a dump folder or a GP5 project
-on macOS (Apple Silicon). Built-in Kraken only
-(Windows Publishing Tools / Oodle are not used).
+The app builds a debug PS5 `.pkg` from a game folder, an exFAT image,
+an ffpfsc image, or a GP5 project on macOS (Apple Silicon). Built-in
+Kraken only (Windows Publishing Tools / Oodle are not used).
 
 Packing options are explained in `README-PACK.txt`.
 
 ## Download and run
 
-Download `PPR-PKG-builder-0.6.5-macos-arm64.zip` from
+Download `PPR-PKG-builder-0.6.5.1-macos-arm64.zip` from
 [Releases](https://github.com/Shambhala222/PPR-PKG-builder/releases).
 After extraction:
 
 ```
-PPR-PKG-builder-0.6.5-macos-arm64/
-  PPR-PKG builder.app
+PPR-PKG-builder-0.6.5.1-macos-arm64/
+  PPR-PKG Builder.app
   README.md
   README-PACK.txt
   LICENSE
@@ -29,7 +29,7 @@ PPR-PKG-builder-0.6.5-macos-arm64/
   THIRD_PARTY_NOTICES.txt
 ```
 
-Open **PPR-PKG builder.app**. This build is for macOS, Apple Silicon.
+Open **PPR-PKG Builder.app**. This build is for macOS, Apple Silicon.
 The .NET runtime is bundled. The app is ad-hoc signed and is not
 Apple-notarized.
 
@@ -68,8 +68,8 @@ dotnet publish src/GUI/LibProsperoPkg.Gui.csproj \
 ```
 
 The published folder is the app executable tree. To wrap it as
-`PPR-PKG builder.app`, copy those files into `Contents/MacOS`, use
-`src/GUI/osx/Info-0.6.5.plist` as `Contents/Info.plist`, add
+`PPR-PKG Builder.app`, copy those files into `Contents/MacOS`, use
+`src/GUI/osx/Info-0.6.5.1.plist` as `Contents/Info.plist`, add
 `AppIcon.icns`, and ad-hoc sign with `src/GUI/osx/entitlements.plist`.
 
 The Drakmor Windows libraries (`lib/fpkg-0.5` and `lib/fpkg-0.6.5`)

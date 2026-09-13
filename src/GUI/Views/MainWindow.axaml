@@ -92,21 +92,34 @@
       </StackPanel>
     </Grid>
 
-    <ScrollViewer Grid.Row="1">
-          <StackPanel Margin="0,8,0,0" Spacing="6">
+    <TabControl Grid.Row="1" SelectedIndex="{Binding SelectedTabIndex}">
+      <TabItem Header="{Binding BuildTabLabel}">
+        <ScrollViewer>
+          <Grid ColumnDefinitions="*,140" ColumnSpacing="10" Margin="0,8,0,0">
+          <StackPanel Spacing="6">
             <HeaderedContentControl Classes="group" Header="{Binding SettingsLabel}" IsEnabled="{Binding !IsBusy}">
-              <Grid ColumnDefinitions="168,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+              <Grid ColumnDefinitions="168,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
                     RowSpacing="6">
 
-                <TextBlock Grid.Row="0" Classes="lbl" Text="{Binding SourceLabel}" />
-                <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Grid.Row="0" Classes="lbl" Text="{Binding SourceKindLabel}" />
+                <ComboBox Grid.Row="0" Grid.Column="1"
+                          ItemsSource="{Binding SourceKinds}"
+                          SelectedItem="{Binding SourceKind}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="fields:ChoiceOption">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Grid.Row="1" Classes="lbl" Text="{Binding SourceLabel}" />
+                <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto">
                   <TextBox Text="{Binding SourceFolder}" />
                   <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowseSourceCommand}" />
-                  <Button Grid.Column="2" Classes="browse" Content="{Binding BrowseGp5Label}" Command="{Binding BrowseGp5Command}" />
                 </Grid>
 
-                <TextBlock Grid.Row="1" Classes="lbl" Text="{Binding OutputLabel}" />
-                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
+                <TextBlock Grid.Row="2" Classes="lbl" Text="{Binding OutputLabel}" />
+                <StackPanel Grid.Row="2" Grid.Column="1" Spacing="2">
                   <Grid ColumnDefinitions="*,Auto">
                     <TextBox Text="{Binding OutputFolder}" />
                     <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowseOutputCommand}" />
@@ -114,23 +127,23 @@
                   <TextBlock Text="{Binding FreeSpace}" FontSize="11" Opacity="0.65" />
                 </StackPanel>
 
-                <TextBlock Grid.Row="2" Classes="lbl" Text="{Binding TemporaryLabel}" />
-                <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Row="3" Classes="lbl" Text="{Binding TemporaryLabel}" />
+                <Grid Grid.Row="3" Grid.Column="1" ColumnDefinitions="*,Auto">
                   <TextBox Text="{Binding TemporaryFolder}" />
                   <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowseTemporaryCommand}" />
                 </Grid>
 
-                <TextBlock Grid.Row="3" Classes="lbl" Text="{Binding ContentIdLabel}" />
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ContentId}" />
+                <TextBlock Grid.Row="4" Classes="lbl" Text="{Binding ContentIdLabel}" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ContentId}" />
 
-                <TextBlock Grid.Row="4" Classes="lbl" Text="{Binding TitleLabel}" />
-                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TitleName}" />
+                <TextBlock Grid.Row="5" Classes="lbl" Text="{Binding TitleLabel}" />
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding TitleName}" />
 
-                <TextBlock Grid.Row="5" Classes="lbl" Text="{Binding VersionLabel}" />
-                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Version}" />
+                <TextBlock Grid.Row="6" Classes="lbl" Text="{Binding VersionLabel}" />
+                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Version}" />
 
-                <TextBlock Grid.Row="6" Classes="lbl" Text="{Binding SdkVersionLabel}" />
-                <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                <TextBlock Grid.Row="7" Classes="lbl" Text="{Binding SdkVersionLabel}" />
+                <StackPanel Grid.Row="7" Grid.Column="1" Orientation="Horizontal" Spacing="10">
                   <ComboBox Width="88"
                             ItemsSource="{Binding SdkMajors}"
                             SelectedItem="{Binding SdkMajor}"
@@ -140,11 +153,11 @@
                             VerticalAlignment="Center" />
                 </StackPanel>
 
-                <TextBlock Grid.Row="7" Classes="lbl" Text="{Binding PasscodeLabel}" />
-                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Passcode}" PasswordChar="●" />
+                <TextBlock Grid.Row="8" Classes="lbl" Text="{Binding PasscodeLabel}" />
+                <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding Passcode}" PasswordChar="●" />
 
-                <TextBlock Grid.Row="8" Classes="lbl" Text="{Binding PackageTypeLabel}" />
-                <ComboBox Grid.Row="8" Grid.Column="1"
+                <TextBlock Grid.Row="9" Classes="lbl" Text="{Binding PackageTypeLabel}" />
+                <ComboBox Grid.Row="9" Grid.Column="1"
                           ItemsSource="{Binding PackageTypes}"
                           SelectedItem="{Binding PackageType}">
                   <ComboBox.ItemTemplate>
@@ -154,8 +167,8 @@
                   </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <TextBlock Grid.Row="9" Classes="lbl" Text="{Binding ImageModeLabel}" />
-                <ComboBox Grid.Row="9" Grid.Column="1"
+                <TextBlock Grid.Row="10" Classes="lbl" Text="{Binding ImageModeLabel}" />
+                <ComboBox Grid.Row="10" Grid.Column="1"
                           ItemsSource="{Binding ImageModes}"
                           SelectedItem="{Binding ImageMode}">
                   <ComboBox.ItemTemplate>
@@ -165,29 +178,29 @@
                   </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <TextBlock Grid.Row="10" Classes="lbl" Text="{Binding KrakenLevelLabel}" />
-                <NumericUpDown Grid.Row="10" Grid.Column="1"
+                <TextBlock Grid.Row="11" Classes="lbl" Text="{Binding KrakenLevelLabel}" />
+                <NumericUpDown Grid.Row="11" Grid.Column="1"
                                Minimum="-4" Maximum="9"
                                Value="{Binding KrakenLevel}" />
 
-                <TextBlock Grid.Row="11" Classes="lbl" Text="{Binding KrakenThreadsLabel}" />
-                <NumericUpDown Grid.Row="11" Grid.Column="1"
+                <TextBlock Grid.Row="12" Classes="lbl" Text="{Binding KrakenThreadsLabel}" />
+                <NumericUpDown Grid.Row="12" Grid.Column="1"
                                Minimum="0" Maximum="256"
                                Value="{Binding KrakenThreads}" />
 
-                <TextBlock Grid.Row="12" Classes="lbl" Text="{Binding PlayGoChunksLabel}" />
-                <NumericUpDown Grid.Row="12" Grid.Column="1"
+                <TextBlock Grid.Row="13" Classes="lbl" Text="{Binding PlayGoChunksLabel}" />
+                <NumericUpDown Grid.Row="13" Grid.Column="1"
                                Minimum="1" Maximum="64"
                                Value="{Binding PlayGoChunks}" />
 
-                <TextBlock Grid.Row="13" Classes="lbl" Text="{Binding EntitlementKeyLabel}"
+                <TextBlock Grid.Row="14" Classes="lbl" Text="{Binding EntitlementKeyLabel}"
                            IsVisible="{Binding IsAcPackage}" />
-                <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding EntitlementKey}"
+                <TextBox Grid.Row="14" Grid.Column="1" Text="{Binding EntitlementKey}"
                          PlaceholderText="32 hex characters"
                          IsVisible="{Binding IsAcPackage}" />
 
-                <TextBlock Grid.Row="14" Classes="lbl" Text="{Binding PfsFormatLabel}" />
-                <ComboBox Grid.Row="14" Grid.Column="1"
+                <TextBlock Grid.Row="15" Classes="lbl" Text="{Binding PfsFormatLabel}" />
+                <ComboBox Grid.Row="15" Grid.Column="1"
                           ItemsSource="{Binding PfsFormats}"
                           SelectedItem="{Binding PfsFormat}">
                   <ComboBox.ItemTemplate>
@@ -197,9 +210,9 @@
                   </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <TextBlock Grid.Row="15" Classes="lbl" Text="{Binding PredictionLevelLabel}"
+                <TextBlock Grid.Row="16" Classes="lbl" Text="{Binding PredictionLevelLabel}"
                            IsVisible="{Binding IsPfsV3}" />
-                <ComboBox Grid.Row="15" Grid.Column="1"
+                <ComboBox Grid.Row="16" Grid.Column="1"
                           ItemsSource="{Binding PredictionLevels}"
                           SelectedItem="{Binding PredictionLevel}"
                           IsVisible="{Binding IsPfsV3}">
@@ -210,8 +223,8 @@
                   </ComboBox.ItemTemplate>
                 </ComboBox>
 
-                <TextBlock Grid.Row="16" Classes="lbl" Text="{Binding OptionsLabel}" />
-                <StackPanel Grid.Row="16" Grid.Column="1" Spacing="4">
+                <TextBlock Grid.Row="17" Classes="lbl" Text="{Binding OptionsLabel}" />
+                <StackPanel Grid.Row="17" Grid.Column="1" Spacing="4">
                   <CheckBox Content="{Binding DeterministicLabel}"
                             IsChecked="{Binding Deterministic}"
                             VerticalAlignment="Center" />
@@ -251,7 +264,83 @@
               <Button Content="{Binding CopyLogLabel}" Command="{Binding CopyLogCommand}" />
             </StackPanel>
           </StackPanel>
+
+            <Border Grid.Column="1" Width="128" Height="128" VerticalAlignment="Top"
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="1"
+                    Background="Transparent">
+              <Image Stretch="Uniform" Source="{Binding DumpIcon}" />
+            </Border>
+          </Grid>
         </ScrollViewer>
+      </TabItem>
+      <TabItem Header="{Binding UnpackTabLabel}">
+        <ScrollViewer>
+          <StackPanel Margin="0,8,0,0" Spacing="8">
+            <Grid ColumnDefinitions="140,*" ColumnSpacing="12">
+              <Border Width="128" Height="128"
+                      Background="#202020"
+                      BorderBrush="#404040"
+                      BorderThickness="1"
+                      VerticalAlignment="Top">
+                <Image Stretch="Uniform" Source="{Binding PackageIcon}" />
+              </Border>
+              <Grid Grid.Column="1" ColumnDefinitions="168,*"
+                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                    RowSpacing="6"
+                    IsEnabled="{Binding !IsBusy}">
+                <TextBlock Grid.Row="0" Classes="lbl" Text="{Binding PackageLabel}" />
+                <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto">
+                  <TextBox Text="{Binding PackagePath}" />
+                  <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowsePackageCommand}" />
+                </Grid>
+
+                <TextBlock Grid.Row="1" Classes="lbl" Text="{Binding UnpackFolderLabel}" />
+                <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto">
+                  <TextBox Text="{Binding UnpackFolder}" />
+                  <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowseUnpackFolderCommand}" />
+                </Grid>
+
+                <TextBlock Grid.Row="2" Classes="lbl" Text="{Binding PasscodeLabel}" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Passcode}" PasswordChar="●" />
+
+                <TextBlock Grid.Row="3" Classes="lbl" Text="{Binding TitleLabel}" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding InspectTitle, Mode=OneWay}" IsReadOnly="True" />
+
+                <TextBlock Grid.Row="4" Classes="lbl" Text="{Binding ContentIdLabel}" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding InspectContentId, Mode=OneWay}" IsReadOnly="True" />
+
+                <TextBlock Grid.Row="5" Classes="lbl" Text="{Binding VersionLabel}" />
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding InspectVersion, Mode=OneWay}" IsReadOnly="True" />
+
+                <TextBlock Grid.Row="6" Classes="lbl" Text="{Binding SdkVersionLabel}" />
+                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding InspectSdk, Mode=OneWay}" IsReadOnly="True" />
+
+                <TextBlock Grid.Row="7" Classes="lbl" Text="{Binding PackageTypeLabel}" />
+                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding InspectType, Mode=OneWay}" IsReadOnly="True" />
+
+                <TextBlock Grid.Row="8" Classes="lbl" Text="{Binding RetailInspectLabel}" />
+                <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding InspectRetail, Mode=OneWay}" IsReadOnly="True" />
+
+                <TextBlock Grid.Row="9" Classes="lbl" Text="{Binding EncryptedInspectLabel}" />
+                <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding InspectEncrypted, Mode=OneWay}" IsReadOnly="True" />
+
+                <TextBlock Grid.Row="10" Classes="lbl" Text="{Binding SizeInspectLabel}" />
+                <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding InspectSize, Mode=OneWay}" IsReadOnly="True" />
+
+                <TextBlock Grid.Row="11" Classes="lbl" Text="{Binding KeyInspectLabel}" />
+                <TextBox Grid.Row="11" Grid.Column="1" Text="{Binding InspectKey, Mode=OneWay}" IsReadOnly="True" />
+              </Grid>
+            </Grid>
+            <TextBlock Text="{Binding UnpackTargetHint}" Opacity="0.7" IsVisible="{Binding HasUnpackTargetHint}" />
+            <StackPanel Orientation="Horizontal">
+              <Button Content="{Binding UnpackLabel}" Command="{Binding UnpackCommand}" IsEnabled="{Binding !IsBusy}" />
+              <Button Content="{Binding CancelLabel}" Command="{Binding CancelCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
 
     <Grid Grid.Row="2" RowDefinitions="Auto,*">
       <TextBlock Text="{Binding BuildLogLabel}" Margin="8,0,0,2" />

@@ -31,6 +31,7 @@ public sealed partial class MainWindowViewModel
     private string _unpackTargetHint = "";
     private int _selectedTabIndex;
     private Bitmap? _packageIcon;
+    private Bitmap? _dumpIcon;
     private string _inspectedPackagePath = "";
     private int _inspectGeneration;
 
@@ -144,6 +145,21 @@ public sealed partial class MainWindowViewModel
         {
             Bitmap? previous = _packageIcon;
             if (!SetProperty(ref _packageIcon, value))
+                return;
+            previous?.Dispose();
+            OnPropertyChanged(nameof(HasPackageIcon));
+        }
+    }
+
+    public bool HasPackageIcon => _packageIcon is not null;
+
+    public Bitmap? DumpIcon
+    {
+        get => _dumpIcon;
+        private set
+        {
+            Bitmap? previous = _dumpIcon;
+            if (!SetProperty(ref _dumpIcon, value))
                 return;
             previous?.Dispose();
         }
@@ -276,6 +292,7 @@ public sealed partial class MainWindowViewModel
         ProgressValue = 0;
         ProgressLabel = "0%";
         Append(T("unpack_started"));
+        Append(T("unpack_layout"));
         Append(T("unpack_resume"));
         Append(T("package_prefix") + package);
         Append(T("output_prefix") + output);
@@ -482,19 +499,26 @@ public sealed partial class MainWindowViewModel
 
     private void SetPackageIcon(byte[]? png)
     {
+        PackageIcon = TryCreateBitmap(png);
+    }
+
+    private void SetDumpIcon(byte[]? png)
+    {
+        DumpIcon = TryCreateBitmap(png);
+    }
+
+    private static Bitmap? TryCreateBitmap(byte[]? png)
+    {
         if (png is null || png.Length == 0)
-        {
-            PackageIcon = null;
-            return;
-        }
+            return null;
         try
         {
             using var stream = new MemoryStream(png, writable: false);
-            PackageIcon = new Bitmap(stream);
+            return new Bitmap(stream);
         }
         catch
         {
-            PackageIcon = null;
+            return null;
         }
     }
 

@@ -72,6 +72,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private ChoiceOption? _imageMode;
     private ChoiceOption? _pfsFormat;
     private ChoiceOption? _predictionLevel;
+    private ChoiceOption? _sourceKind;
     private LanguageOption _selectedLanguage = UiText.Languages[0];
 
     public MainWindowViewModel(IStorageService storage)
@@ -83,7 +84,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         PredictionLevels = [];
         Languages = new ObservableCollection<LanguageOption>(UiText.Languages);
         SdkMajors = new ObservableCollection<int>(Enumerable.Range(1, 11));
-        BrowseSourceCommand = new AsyncRelayCommand(() => BrowseFolder(UiText.Get(_language, "pick_source"), v => SourceFolder = v));
+        SourceKinds = [];
+        BrowseSourceCommand = new AsyncRelayCommand(BrowseSourceAsync);
         BrowseGp5Command = new AsyncRelayCommand(BrowseGp5Async);
         BrowseOutputCommand = new AsyncRelayCommand(() => BrowseFolder(UiText.Get(_language, "pick_output"), v => OutputFolder = v));
         BrowseTemporaryCommand = new AsyncRelayCommand(() => BrowseFolder(UiText.Get(_language, "pick_temp"), v => TemporaryFolder = v));
@@ -103,6 +105,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<ChoiceOption> ImageModes { get; }
     public ObservableCollection<ChoiceOption> PfsFormats { get; }
     public ObservableCollection<ChoiceOption> PredictionLevels { get; }
+    public ObservableCollection<ChoiceOption> SourceKinds { get; }
 
     public LanguageOption SelectedLanguage
     {
@@ -117,7 +120,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     }
 
     public string WindowTitle { get; private set; } = "";
-    public string AppVersion { get; } = "v0.6.5";
+    public string AppVersion { get; } = "v0.6.5.1";
     public string Heading { get; private set; } = "";
     public string Subtitle { get; private set; } = "";
     public string Copyright { get; private set; } = "";
@@ -142,6 +145,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public string DeterministicLabel { get; private set; } = "";
     public string SkipMacSidecarsLabel { get; private set; } = "";
     public string BrowseGp5Label { get; private set; } = "";
+    public string SourceKindLabel { get; private set; } = "";
     public string EntitlementKeyLabel { get; private set; } = "";
     public string PfsFormatLabel { get; private set; } = "";
     public string PredictionLevelLabel { get; private set; } = "";
@@ -274,6 +278,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         get => _predictionLevel;
         set => SetProperty(ref _predictionLevel, value);
+    }
+
+    public ChoiceOption? SourceKind
+    {
+        get => _sourceKind;
+        set => SetProperty(ref _sourceKind, value);
     }
 
     public bool IsPfsV3 => string.Equals(_pfsFormat?.Value as string, "Version3", StringComparison.Ordinal);
@@ -420,6 +430,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         object? imageValue = ImageMode?.Value;
         object? pfsValue = PfsFormat?.Value;
         object? predictValue = PredictionLevel?.Value;
+        object? sourceKindValue = SourceKind?.Value;
 
         WindowTitle = T("window");
         Heading = T("heading");
@@ -447,6 +458,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         DeterministicLabel = T("deterministic");
         SkipMacSidecarsLabel = T("skip_mac_sidecars");
         BrowseGp5Label = T("browse_gp5");
+        SourceKindLabel = T("source_kind");
         EntitlementKeyLabel = T("entitlement_key");
         PfsFormatLabel = T("pfs_format");
         PredictionLevelLabel = T("prediction_level");
@@ -486,6 +498,13 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             PredictionLevels.Add(new ChoiceOption(level.ToString(CultureInfo.InvariantCulture), level.ToString(CultureInfo.InvariantCulture)));
         PredictionLevel = FindByValue(PredictionLevels, predictValue) ?? PredictionLevels[0];
 
+        SourceKinds.Clear();
+        SourceKinds.Add(new ChoiceOption(T("source_folder"), "folder"));
+        SourceKinds.Add(new ChoiceOption(T("source_exfat"), "exfat"));
+        SourceKinds.Add(new ChoiceOption(T("source_ffpfsc"), "ffpfsc"));
+        SourceKinds.Add(new ChoiceOption(T("source_gp5"), "gp5"));
+        SourceKind = FindByValue(SourceKinds, sourceKindValue) ?? SourceKinds[0];
+
         OnPropertyChanged(nameof(WindowTitle));
         OnPropertyChanged(nameof(Heading));
         OnPropertyChanged(nameof(Subtitle));
@@ -511,6 +530,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(DeterministicLabel));
         OnPropertyChanged(nameof(SkipMacSidecarsLabel));
         OnPropertyChanged(nameof(BrowseGp5Label));
+        OnPropertyChanged(nameof(SourceKindLabel));
         OnPropertyChanged(nameof(EntitlementKeyLabel));
         OnPropertyChanged(nameof(PfsFormatLabel));
         OnPropertyChanged(nameof(PredictionLevelLabel));
@@ -550,6 +570,31 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             assign(path);
     }
 
+    private async Task BrowseSourceAsync()
+    {
+        string kind = SourceKind?.Value as string ?? "folder";
+        if (kind == "gp5")
+        {
+            await BrowseGp5Async();
+            return;
+        }
+        if (kind == "exfat")
+        {
+            string? path = await _storage.OpenFileAsync(T("pick_exfat"), T("exfat_filter"), ["exfat", "xfat"]);
+            if (!string.IsNullOrEmpty(path))
+                SourceFolder = path;
+            return;
+        }
+        if (kind == "ffpfsc")
+        {
+            string? path = await _storage.OpenFileAsync(T("pick_ffpfsc"), T("ffpfsc_filter"), ["ffpfsc", "ffpfc", "ffpfs"]);
+            if (!string.IsNullOrEmpty(path))
+                SourceFolder = path;
+            return;
+        }
+        await BrowseFolder(T("pick_source"), v => SourceFolder = v);
+    }
+
     private async Task BrowseGp5Async()
     {
         string? path = await _storage.OpenFileAsync(T("pick_gp5"), T("gp5"), ["gp5"]);
@@ -561,15 +606,27 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         string source = _sourceFolder.Trim();
         if (string.IsNullOrEmpty(source))
+        {
+            SetDumpIcon(null);
             return;
+        }
         if (File.Exists(source) && source.EndsWith(".gp5", StringComparison.OrdinalIgnoreCase))
         {
             LoadGp5Metadata(source);
+            SetDumpIcon(null);
             RefreshPlayGoStatus();
             return;
         }
-        if (!Directory.Exists(source))
+        if (ImageSourceSession.IsImagePath(source) || (File.Exists(source) && ImageSourceSession.DetectKind(source) != "folder"))
+        {
+            LoadImageMetadata(source);
             return;
+        }
+        if (!Directory.Exists(source))
+        {
+            SetDumpIcon(null);
+            return;
+        }
 
         string? sceSys = FindNamedDirectory(source, "sce_sys");
         if (sceSys is null)
@@ -621,12 +678,61 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             if (!OverrideSdkVersion && TryReadSdkMajor(param.SdkVersion, out int major))
                 SdkMajor = major;
             string id = param.ContentId ?? ContentId;
-            MetadataStatus = T("metadata_loaded") + id + " — " + (title ?? TitleName);
+            MetadataStatus = T("metadata_loaded") + id + "  " + (title ?? TitleName);
             RefreshPlayGoStatus();
+            string icon = Path.Combine(source, "sce_sys", "icon0.png");
+            if (File.Exists(icon))
+            {
+                try { SetDumpIcon(File.ReadAllBytes(icon)); }
+                catch { SetDumpIcon(null); }
+            }
+            else
+                SetDumpIcon(null);
         }
         catch (Exception ex)
         {
             MetadataStatus = T("param_fail") + ex.Message;
+            SetDumpIcon(null);
+        }
+    }
+
+    private void LoadImageMetadata(string imagePath)
+    {
+        try
+        {
+            ImageInspect? inspect = ImageSourceSession.Inspect(imagePath);
+            if (inspect is null)
+            {
+                MetadataStatus = T("param_fail") + T("source_image_unreadable");
+                SetDumpIcon(null);
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(inspect.ParamJson))
+            {
+                var param = ProsperoParam.Parse(inspect.ParamJson);
+                if (!string.IsNullOrWhiteSpace(param.ContentId))
+                    ContentId = param.ContentId;
+                string? version = param.ContentVersion ?? param.MasterVersion;
+                if (!string.IsNullOrWhiteSpace(version) && TryCanonicalContentVersion(version, out string canonical))
+                    Version = canonical;
+                else if (!string.IsNullOrWhiteSpace(version))
+                    Version = version;
+                string? title = param.GetTitleName(param.DefaultLanguage ?? "en-US") ?? param.GetTitleName("en-US");
+                if (!string.IsNullOrWhiteSpace(title))
+                    TitleName = title;
+                if (!OverrideSdkVersion && TryReadSdkMajor(param.SdkVersion, out int major))
+                    SdkMajor = major;
+                MetadataStatus = T("metadata_loaded") + (param.ContentId ?? ContentId) + "  " + TitleName;
+            }
+            else
+                MetadataStatus = Path.GetFileName(imagePath);
+            SetDumpIcon(inspect.IconPng);
+            PlayGoStatus = string.Format(T("playgo_auto"), (int)PlayGoChunks);
+        }
+        catch (Exception ex)
+        {
+            MetadataStatus = T("param_fail") + ex.Message;
+            SetDumpIcon(null);
         }
     }
 
@@ -948,7 +1054,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         playGoChunks = 1;
 
         bool gp5 = File.Exists(source) && source.EndsWith(".gp5", StringComparison.OrdinalIgnoreCase);
-        if (string.IsNullOrEmpty(source) || (!Directory.Exists(source) && !gp5))
+        bool image = ImageSourceSession.IsImagePath(source)
+            || (File.Exists(source) && ImageSourceSession.DetectKind(source) != "folder");
+        if (string.IsNullOrEmpty(source) || (!Directory.Exists(source) && !gp5 && !image))
             return T("source_missing");
         if (string.IsNullOrEmpty(output))
             return T("output_required");
@@ -1021,8 +1129,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         int chunks = (int)PlayGoChunks;
         if (chunks < 1)
             chunks = 1;
+        if (ImageSourceSession.IsImagePath(_sourceFolder)
+            || (File.Exists(_sourceFolder) && ImageSourceSession.DetectKind(_sourceFolder) != "folder"))
+        {
+            PlayGoStatus = string.Format(T("playgo_auto"), chunks);
+            return;
+        }
+
         string? root = ResolveSourceRoot(_sourceFolder);
-        if (!string.IsNullOrEmpty(root))
+        if (!string.IsNullOrEmpty(root) && Directory.Exists(root))
         {
             string sce = Path.Combine(root, "sce_sys");
             string[] names = ["playgo-chunk.dat", "playgo-hash-table.dat", "playgo-ficm.dat"];
@@ -1113,9 +1228,26 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             return null;
         if (File.Exists(source) && source.EndsWith(".gp5", StringComparison.OrdinalIgnoreCase))
             return Path.GetDirectoryName(Path.GetFullPath(source));
+        if (ImageSourceSession.IsImagePath(source) || (File.Exists(source) && ImageSourceSession.DetectKind(source) != "folder"))
+            return Path.GetFullPath(source);
         if (Directory.Exists(source))
             return Path.GetFullPath(source);
         return null;
+    }
+
+    private ImageSourceSession PrepareImageSource(
+        string source, string kind, string workTemp, CancellationToken token, Action<string> log, bool forceExtract)
+    {
+        long lastPct = -1;
+        return ImageSourceSession.Prepare(source, kind, workTemp, log, (written, total) =>
+        {
+            token.ThrowIfCancellationRequested();
+            long pct = total <= 0 ? 100 : written * 100 / total;
+            if (pct == lastPct)
+                return;
+            lastPct = pct;
+            log("  " + pct.ToString(CultureInfo.InvariantCulture) + "%");
+        }, token, forceExtract);
     }
 
     private string RunBuild(
@@ -1125,24 +1257,43 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         token.ThrowIfCancellationRequested();
         string workTemp = ResolveLargeBuildTemp(temp, output, log);
-        string sourceRoot = ResolveSourceRoot(source) ?? source;
+        ImageSourceSession? imageSession = null;
+        ParamDrmPatch? drmPatch = null;
+        string packRoot = source;
+        if (ImageSourceSession.IsImagePath(source) || (File.Exists(source) && ImageSourceSession.DetectKind(source) != "folder"))
+        {
+            string kind = SourceKind?.Value as string ?? ImageSourceSession.DetectKind(source);
+            imageSession = PrepareImageSource(source, kind, workTemp, token, log, forceExtract: false);
+            packRoot = imageSession.AppFolder;
+            if (imageSession.IsReadOnlyMount && ParamDrmPatch.NeedsStandard(packRoot))
+            {
+                log("exFAT image is read-only — extracting so param.json can be packed as \"standard\".");
+                imageSession.Dispose();
+                imageSession = PrepareImageSource(source, kind, workTemp, token, log, forceExtract: true);
+                packRoot = imageSession.AppFolder;
+            }
+        }
+
+        string sourceRoot = Directory.Exists(packRoot) ? Path.GetFullPath(packRoot) : (ResolveSourceRoot(source) ?? source);
         string? park = ParkFolderBeside(sourceRoot, contentId);
-        if (Directory.Exists(park))
+        if (Directory.Exists(park) && Directory.Exists(sourceRoot))
             MacSidecarFilter.Restore(park, sourceRoot, log);
         try
         {
-            if (SkipMacSidecars && MacSidecarFilter.ShouldFilter(sourceRoot))
+            drmPatch = ParamDrmPatch.ApplyIfFree(sourceRoot, log);
+            bool skipSidecarPark = imageSession?.IsReadOnlyMount == true;
+            if (!skipSidecarPark && SkipMacSidecars && MacSidecarFilter.ShouldFilter(sourceRoot))
             {
                 log("Mac sidecar files (._*) found — leaving them out of the package.");
                 MacSidecarFilter.Park(sourceRoot, park, token, log, (n, _) => _progress.SetPrepareScan(n, 0));
             }
-            else if (!SkipMacSidecars && MacSidecarFilter.ShouldFilter(sourceRoot))
+            else if (!skipSidecarPark && !SkipMacSidecars && MacSidecarFilter.ShouldFilter(sourceRoot))
                 log("Mac sidecar files (._*) are included so the file set matches a Windows pack of this dump.");
 
-            string measureRoot = ResolveSourceRoot(source) ?? source;
+            string measureRoot = Directory.Exists(packRoot) ? packRoot : (ResolveSourceRoot(source) ?? source);
             _progress.SetSourceSize(MeasureSource(measureRoot, token, log));
             bool gp5 = File.Exists(source) && source.EndsWith(".gp5", StringComparison.OrdinalIgnoreCase);
-            string sourceFolder = gp5 ? (Path.GetDirectoryName(source) ?? measureRoot) : source;
+            string sourceFolder = gp5 ? (Path.GetDirectoryName(source) ?? measureRoot) : packRoot;
             string pfs = PfsFormat?.Value as string ?? "Version2";
             if (AnalyzeShuffle)
                 pfs = "Version3";
@@ -1181,13 +1332,17 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 EnableOuterBlockCoalescing = OuterCoalescing,
                 EnableRelocationAlignmentAdjustment = RelocationAlignment,
                 UseLayoutLibrary = layoutLibrary,
+                ApplicationDrmType = "standard",
                 CancellationToken = token,
                 Log = log,
             });
         }
         finally
         {
-            MacSidecarFilter.Restore(park, sourceRoot, log);
+            drmPatch?.Dispose();
+            if (Directory.Exists(sourceRoot))
+                MacSidecarFilter.Restore(park, sourceRoot, log);
+            imageSession?.Dispose();
         }
     }
 

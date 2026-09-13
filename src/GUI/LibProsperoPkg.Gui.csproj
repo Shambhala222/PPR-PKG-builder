@@ -9,7 +9,7 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AssemblyName>LibProsperoPkg.Gui</AssemblyName>
     <RootNamespace>LibProsperoPkg.Gui</RootNamespace>
-    <Version>0.6.5</Version>
+    <Version>0.6.5.1</Version>
   </PropertyGroup>
 
   <ItemGroup>

@@ -50,6 +50,7 @@ internal static class Win02PackageBuilder
         public bool EnableOuterBlockCoalescing { get; init; } = true;
         public bool EnableRelocationAlignmentAdjustment { get; init; } = true;
         public bool UseLayoutLibrary { get; init; }
+        public string? ApplicationDrmType { get; init; }
         public CancellationToken CancellationToken { get; init; }
         public required Action<string> Log { get; init; }
     }
@@ -72,6 +73,8 @@ internal static class Win02PackageBuilder
         Set(options, "Title", request.Title);
         Set(options, "Version", request.Version);
         Set(options, "GenerateParamJsonIfMissing", true);
+        if (!string.IsNullOrWhiteSpace(request.ApplicationDrmType))
+            Set(options, "ApplicationDrmType", request.ApplicationDrmType);
         Set(options, "UsePublisherPprNaps", true);
         Set(options, "KrakenCompressionLevel", request.KrakenLevel);
         Set(options, "KrakenMaxDegreeOfParallelism", request.KrakenThreads);

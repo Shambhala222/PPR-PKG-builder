@@ -1,9 +1,9 @@
-PPR-PKG builder v0.6.5 for macOS by Shambhala222
-================================================
+PPR-PKG Builder v0.6.5.1 for macOS by Shambhala222
+==================================================
 
 This is the macOS port of Drakmor's and SvenGDK's PPR-PKG builder (Windows)
-by Shambhala222. Same job as Windows 0.6.5: turn a dump folder
-(or a GP5 project) into a debug .pkg.
+by Shambhala222. Same job as Windows 0.6.5: turn a game folder, an
+exFAT image, an ffpfsc image, or a GP5 project into a debug .pkg.
 
 Built-in Kraken only (Windows Publishing Tools / Oodle are not used).
 GP5, AC and PFS v3 use Drakmor's 0.6.5 library.
@@ -127,7 +127,8 @@ Skip PFSv3 input-data check
 
 Source / Output / Temporary
 ---------------------------
-Source      Dump folder, or a .gp5 if you have one.
+Source      Game folder, exFAT image, ffpfsc image, or a .gp5.
+            Browse still accepts .exfat / .xfat and .ffpfsc / .ffpfc / .ffpfs.
 Output      Folder for the finished .pkg. Must not sit inside Source,
             or the .pkg would be packed into itself.
 Free:       Free space on that disk (same bytes as Finder. The app
@@ -142,6 +143,18 @@ Content ID, Title, Version, Passcode
 Filled from sce_sys/param.json when possible.
 Change them only if they are wrong.
 Empty passcode = 32 zeros (normal debug / plaintext).
+
+If applicationDrmType is "free", the pack uses "standard" so the PS5
+does not show a lock. The original param.json in the dump is restored
+afterwards. Already-"standard" dumps are left alone.
+
+
+Inspect & Unpack
+----------------
+Open a .pkg to see title, Content ID, version, SDK, type, retail,
+outer encrypted, size and whether a key is needed. Unpack uses the
+current extractor (outer PFS, inner image, Sony folder layout).
+There is no Open Folder button.
 
 
 SDK version + Override
@@ -211,6 +224,7 @@ Do not
 
 Apps
 ----
-fpkg-gui-0.6.5-MacOS.app    this version
+fpkg-gui-0.6.5.1-MacOS.app  this version
+fpkg-gui-0.6.5-MacOS.app    older 0.6.5, leave it alone
 fpkg-gui-0.6.2-MacOS.app    older 0.6, leave it alone
 fpkg-gui-0.5-MacOS.app      older app, leave it alone
