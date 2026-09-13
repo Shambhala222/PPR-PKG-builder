@@ -1,0 +1,44 @@
+Third-party components used by this macOS build
+
+LibProsperoPkg
+  Copyright (C) 2026 SvenGDK
+  GNU GPLv3 or later
+  https://github.com/SvenGDK/LibProsperoPKG
+  See LICENSE and NOTICE.
+
+LibOrbisPkg (derived code inside LibProsperoPkg)
+  Copyright maxton
+  GNU GPLv3
+  https://github.com/maxton/LibOrbisPkg
+
+ooz / Kraken decode reference (derived code inside LibProsperoPkg)
+  Copyright Powzix
+  GNU GPLv3
+  https://github.com/powzix/ooz
+
+Drakmor Windows builder libraries
+  LibProsperoPkg.Win05.dll  — Windows 0.5 library, SHA-256
+  9f589d0c685fef87c7b1c683b69417a54e4911701c4f18aeb5d675891440ba83
+  LibProsperoPkg.Win06.dll  — Windows 0.6.5 library, SHA-256
+  d04d8660fdb0047386c94f727eec32413334353329cc9c18ce8fc7dd92d3c271
+  Used as-is. Windows-only Publishing Tools / Oodle DLLs are not included.
+
+Avalonia
+  MIT License
+  https://github.com/AvaloniaUI/Avalonia
+
+BCnEncoder.Net
+  MIT License
+  https://github.com/Nominom/BCnEncoder.NET
+
+Magick.NET / ImageMagick
+  Apache License 2.0
+  https://github.com/dlemstra/Magick.NET
+
+CommunityToolkit.HighPerformance
+  MIT License
+  https://github.com/CommunityToolkit/dotnet
+
+.NET runtime (self-contained osx-arm64 publish)
+  MIT License
+  https://github.com/dotnet/runtime

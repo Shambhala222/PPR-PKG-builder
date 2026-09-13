@@ -1,0 +1,295 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:LibProsperoPkg.Gui.ViewModels"
+        xmlns:fields="clr-namespace:LibProsperoPkg.Gui.ViewModels.Fields"
+        xmlns:loc="clr-namespace:LibProsperoPkg.Gui.Localization"
+        x:Class="LibProsperoPkg.Gui.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding WindowTitle}"
+        Width="980" Height="880"
+        MinWidth="860" MinHeight="720"
+        FontFamily="Segoe UI, SF Pro Text, Helvetica Neue, sans-serif"
+        FontSize="12">
+
+  <Window.Styles>
+    <Style Selector="TextBlock.lbl">
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="MinHeight" Value="23" />
+      <Setter Property="Padding" Value="4,2" />
+    </Style>
+    <Style Selector="TextBox.log">
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="VerticalContentAlignment" Value="Top" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="MinHeight" Value="23" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="NumericUpDown">
+      <Setter Property="MinHeight" Value="23" />
+      <Setter Property="Width" Value="88" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="FormatString" Value="0" />
+      <Setter Property="ShowButtonSpinner" Value="True" />
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="MinHeight" Value="26" />
+      <Setter Property="Padding" Value="12,3" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+    </Style>
+    <Style Selector="Button.browse">
+      <Setter Property="MinWidth" Value="88" />
+      <Setter Property="Margin" Value="6,0,0,0" />
+    </Style>
+    <Style Selector="HeaderedContentControl.group">
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid>
+            <Border Margin="0,8,0,0"
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="1"
+                    Background="Transparent"
+                    Padding="10,14,10,10">
+              <ContentPresenter Content="{TemplateBinding Content}" />
+            </Border>
+            <TextBlock Text="{TemplateBinding Header}"
+                       Background="{DynamicResource ThemeBackgroundBrush}"
+                       Margin="10,0,0,0"
+                       Padding="6,0"
+                       HorizontalAlignment="Left"
+                       VerticalAlignment="Top" />
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+  </Window.Styles>
+
+  <Grid Margin="12,10,12,8" RowDefinitions="Auto,*,200,Auto" RowSpacing="6">
+
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="2">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="{Binding Heading}" FontSize="22" FontWeight="Bold" />
+          <TextBlock Text="{Binding AppVersion}" FontSize="14" Opacity="0.5" VerticalAlignment="Center" Margin="0,6,0,0" />
+        </StackPanel>
+        <TextBlock Text="{Binding Subtitle}" Opacity="0.75" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="0,4,0,0">
+        <TextBlock Text="{Binding LanguageLabel}" VerticalAlignment="Center" />
+        <ComboBox Width="130" Height="23"
+                  ItemsSource="{Binding Languages}"
+                  SelectedItem="{Binding SelectedLanguage}">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="loc:LanguageOption">
+              <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+    </Grid>
+
+    <ScrollViewer Grid.Row="1">
+          <StackPanel Margin="0,8,0,0" Spacing="6">
+            <HeaderedContentControl Classes="group" Header="{Binding SettingsLabel}" IsEnabled="{Binding !IsBusy}">
+              <Grid ColumnDefinitions="168,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                    RowSpacing="6">
+
+                <TextBlock Grid.Row="0" Classes="lbl" Text="{Binding SourceLabel}" />
+                <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,Auto,Auto">
+                  <TextBox Text="{Binding SourceFolder}" />
+                  <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowseSourceCommand}" />
+                  <Button Grid.Column="2" Classes="browse" Content="{Binding BrowseGp5Label}" Command="{Binding BrowseGp5Command}" />
+                </Grid>
+
+                <TextBlock Grid.Row="1" Classes="lbl" Text="{Binding OutputLabel}" />
+                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Text="{Binding OutputFolder}" />
+                    <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowseOutputCommand}" />
+                  </Grid>
+                  <TextBlock Text="{Binding FreeSpace}" FontSize="11" Opacity="0.65" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="2" Classes="lbl" Text="{Binding TemporaryLabel}" />
+                <Grid Grid.Row="2" Grid.Column="1" ColumnDefinitions="*,Auto">
+                  <TextBox Text="{Binding TemporaryFolder}" />
+                  <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowseTemporaryCommand}" />
+                </Grid>
+
+                <TextBlock Grid.Row="3" Classes="lbl" Text="{Binding ContentIdLabel}" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ContentId}" />
+
+                <TextBlock Grid.Row="4" Classes="lbl" Text="{Binding TitleLabel}" />
+                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TitleName}" />
+
+                <TextBlock Grid.Row="5" Classes="lbl" Text="{Binding VersionLabel}" />
+                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Version}" />
+
+                <TextBlock Grid.Row="6" Classes="lbl" Text="{Binding SdkVersionLabel}" />
+                <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                  <ComboBox Width="88"
+                            ItemsSource="{Binding SdkMajors}"
+                            SelectedItem="{Binding SdkMajor}"
+                            IsEnabled="{Binding OverrideSdkVersion}" />
+                  <CheckBox Content="{Binding OverrideSdkLabel}"
+                            IsChecked="{Binding OverrideSdkVersion}"
+                            VerticalAlignment="Center" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="7" Classes="lbl" Text="{Binding PasscodeLabel}" />
+                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Passcode}" PasswordChar="●" />
+
+                <TextBlock Grid.Row="8" Classes="lbl" Text="{Binding PackageTypeLabel}" />
+                <ComboBox Grid.Row="8" Grid.Column="1"
+                          ItemsSource="{Binding PackageTypes}"
+                          SelectedItem="{Binding PackageType}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="fields:ChoiceOption">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Grid.Row="9" Classes="lbl" Text="{Binding ImageModeLabel}" />
+                <ComboBox Grid.Row="9" Grid.Column="1"
+                          ItemsSource="{Binding ImageModes}"
+                          SelectedItem="{Binding ImageMode}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="fields:ChoiceOption">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Grid.Row="10" Classes="lbl" Text="{Binding KrakenLevelLabel}" />
+                <NumericUpDown Grid.Row="10" Grid.Column="1"
+                               Minimum="-4" Maximum="9"
+                               Value="{Binding KrakenLevel}" />
+
+                <TextBlock Grid.Row="11" Classes="lbl" Text="{Binding KrakenThreadsLabel}" />
+                <NumericUpDown Grid.Row="11" Grid.Column="1"
+                               Minimum="0" Maximum="256"
+                               Value="{Binding KrakenThreads}" />
+
+                <TextBlock Grid.Row="12" Classes="lbl" Text="{Binding PlayGoChunksLabel}" />
+                <NumericUpDown Grid.Row="12" Grid.Column="1"
+                               Minimum="1" Maximum="64"
+                               Value="{Binding PlayGoChunks}" />
+
+                <TextBlock Grid.Row="13" Classes="lbl" Text="{Binding EntitlementKeyLabel}"
+                           IsVisible="{Binding IsAcPackage}" />
+                <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding EntitlementKey}"
+                         PlaceholderText="32 hex characters"
+                         IsVisible="{Binding IsAcPackage}" />
+
+                <TextBlock Grid.Row="14" Classes="lbl" Text="{Binding PfsFormatLabel}" />
+                <ComboBox Grid.Row="14" Grid.Column="1"
+                          ItemsSource="{Binding PfsFormats}"
+                          SelectedItem="{Binding PfsFormat}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="fields:ChoiceOption">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Grid.Row="15" Classes="lbl" Text="{Binding PredictionLevelLabel}"
+                           IsVisible="{Binding IsPfsV3}" />
+                <ComboBox Grid.Row="15" Grid.Column="1"
+                          ItemsSource="{Binding PredictionLevels}"
+                          SelectedItem="{Binding PredictionLevel}"
+                          IsVisible="{Binding IsPfsV3}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="fields:ChoiceOption">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <TextBlock Grid.Row="16" Classes="lbl" Text="{Binding OptionsLabel}" />
+                <StackPanel Grid.Row="16" Grid.Column="1" Spacing="4">
+                  <CheckBox Content="{Binding DeterministicLabel}"
+                            IsChecked="{Binding Deterministic}"
+                            VerticalAlignment="Center" />
+                  <CheckBox Content="{Binding FinalSha256Label}"
+                            IsChecked="{Binding CalculateFinalSha256}"
+                            VerticalAlignment="Center" />
+                  <CheckBox Content="{Binding SkipMacSidecarsLabel}"
+                            IsChecked="{Binding SkipMacSidecars}"
+                            VerticalAlignment="Center" />
+                  <CheckBox Content="{Binding OuterCoalescingLabel}"
+                            IsChecked="{Binding OuterCoalescing}"
+                            VerticalAlignment="Center" />
+                  <CheckBox Content="{Binding RelocationAlignmentLabel}"
+                            IsChecked="{Binding RelocationAlignment}"
+                            VerticalAlignment="Center" />
+                  <CheckBox Content="{Binding AnalyzeShuffleLabel}"
+                            IsChecked="{Binding AnalyzeShuffle}"
+                            IsEnabled="{Binding IsPfsV3}"
+                            VerticalAlignment="Center" />
+                  <CheckBox Content="{Binding SkipPfsInputCheckLabel}"
+                            IsChecked="{Binding SkipPfsInputCheck}"
+                            IsEnabled="{Binding IsPfsV3}"
+                            VerticalAlignment="Center" />
+                </StackPanel>
+              </Grid>
+            </HeaderedContentControl>
+
+            <StackPanel Margin="2,4,0,0" Spacing="2">
+              <TextBlock Text="{Binding MetadataStatus}" Foreground="#008000" IsVisible="{Binding HasMetadataStatus}" />
+              <TextBlock Text="{Binding PlayGoStatus}" Foreground="#1E6BFF" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+              <Button Content="{Binding BuildLabel}" Command="{Binding BuildCommand}" />
+              <Button Content="{Binding CancelLabel}" Command="{Binding CancelCommand}" />
+              <Button Content="{Binding OpenOutputLabel}" Command="{Binding OpenOutputCommand}" />
+              <Button Content="{Binding CopyLogLabel}" Command="{Binding CopyLogCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+
+    <Grid Grid.Row="2" RowDefinitions="Auto,*">
+      <TextBlock Text="{Binding BuildLogLabel}" Margin="8,0,0,2" />
+      <Border Grid.Row="1"
+              Background="#000000"
+              BorderBrush="#404040"
+              BorderThickness="1"
+              ClipToBounds="True">
+        <TextBox x:Name="LogBox"
+                 Classes="log"
+                 Text="{Binding LogText}"
+                 IsReadOnly="True"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 VerticalAlignment="Stretch"
+                 HorizontalAlignment="Stretch"
+                 FontFamily="Cascadia Mono, Consolas, Menlo, monospace"
+                 FontSize="12"
+                 Foreground="#FFFFFF"
+                 Background="#000000"
+                 BorderThickness="0"
+                 CaretBrush="#808080"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+      </Border>
+    </Grid>
+
+    <StackPanel Grid.Row="3" HorizontalAlignment="Right" Spacing="4">
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <ProgressBar Width="210" Height="16"
+                     Minimum="0" Maximum="100"
+                     IsIndeterminate="{Binding IsProgressIndeterminate}"
+                     Value="{Binding ProgressValue}"
+                     Foreground="#21A12A" />
+        <TextBlock Text="{Binding ProgressLabel}" VerticalAlignment="Center" MinWidth="56" />
+        <TextBlock Text="{Binding Status}" VerticalAlignment="Center" />
+      </StackPanel>
+      <TextBlock Text="{Binding Copyright}" FontSize="10" Opacity="0.55" HorizontalAlignment="Right" />
+    </StackPanel>
+  </Grid>
+</Window>

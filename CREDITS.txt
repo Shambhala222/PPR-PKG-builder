@@ -1,0 +1,18 @@
+PPR-PKG builder – unofficial macOS port
+
+Windows PPR-PKG builder (0.5 / 0.6.5 libraries): Drakmor
+LibProsperoPkg library: SvenGDK
+https://github.com/SvenGDK/LibProsperoPKG
+
+macOS GUI, packaging and this release: Shambhala222
+https://github.com/Shambhala222/PPR-PKG-builder
+
+LibProsperoPkg is derived in part from LibOrbisPkg by maxton
+(https://github.com/maxton/LibOrbisPkg) and from the ooz Kraken
+reference by Powzix (https://github.com/powzix/ooz). See NOTICE.
+
+This is not an official Drakmor or SvenGDK release and does not
+imply endorsement.
+
+Released under GNU GPLv3 or later. Original copyright notices remain
+valid. See LICENSE, NOTICE and THIRD_PARTY_NOTICES.txt. No warranty.
