@@ -1,15 +1,14 @@
-# PPR-PKG builder
+# PPR-PKG builder for macOS by Shambhala222
 
-An **unofficial macOS port by Shambhala222** of
-[Drakmor](https://github.com/drakmor)’s Windows PPR-PKG builder and
-[SvenGDK’s LibProsperoPkg](https://github.com/SvenGDK/LibProsperoPKG).
+An unofficial macOS port by Shambhala222 of
+[Drakmor](https://github.com/drakmor)'s Windows PPR-PKG builder and
+[SvenGDK's LibProsperoPkg](https://github.com/SvenGDK/LibProsperoPKG).
 This is an independent community edition, not an official Drakmor or
 SvenGDK release.
 
-The app builds a debug PS5 `.pkg` from a dump folder (or a GP5 project)
-on Apple Silicon. Everyday folder packs use the same fast path as Mac 0.5.
-GP5, AC and PFS v3 use Drakmor’s 0.6.5 library. Built-in Kraken only —
-Windows Publishing Tools / Oodle are not used.
+The app builds a debug PS5 `.pkg` from a dump folder or a GP5 project
+on macOS (Apple Silicon). Built-in Kraken only
+(Windows Publishing Tools / Oodle are not used).
 
 Packing options are explained in `README-PACK.txt`.
 
@@ -30,7 +29,7 @@ PPR-PKG-builder-0.6.5-macos-arm64/
   THIRD_PARTY_NOTICES.txt
 ```
 
-Open **PPR-PKG builder.app**. This build is for **Apple Silicon**.
+Open **PPR-PKG builder.app**. This build is for macOS, Apple Silicon.
 The .NET runtime is bundled. The app is ad-hoc signed and is not
 Apple-notarized.
 
@@ -49,24 +48,10 @@ infected download. Unlock it once:
 After that you can always open the app with a normal double-click. macOS
 will not show these warnings again.
 
-**Erster Start (Gatekeeper).** Nach dem GitHub-Download kann macOS die App
-blockieren, um deinen Mac zu schützen. Das ist Gatekeeper, kein
-Virenfund. Einmal so freigeben:
-
-1. **Systemeinstellungen → Datenschutz & Sicherheit** öffnen.
-2. Nach unten scrollen bis zum Abschnitt **Sicherheit**.
-3. Dort steht, dass die App blockiert wurde, um deinen Mac zu schützen.
-   Direkt daneben **Dennoch öffnen** klicken.
-4. Es kommt noch eine Meldung mit drei Optionen: **In den Papierkorb
-   legen**, **Dennoch öffnen**, **Fertig**. **Dennoch öffnen** klicken.
-5. Mit Touch ID oder Passwort bestätigen. Die App öffnet sich.
-
-Danach kannst du die App immer ganz normal per Doppelklick öffnen.
-
 ## Credits and license
 
-Unofficial macOS port by **Shambhala222**, based on **Drakmor’s**
-Windows PPR-PKG builder and **SvenGDK’s** LibProsperoPkg.
+Unofficial macOS port by **Shambhala222**, based on **Drakmor's**
+Windows PPR-PKG builder and **SvenGDK's** LibProsperoPkg.
 
 Released under **GPLv3**, with upstream copyright notices and third-party
 licenses retained. See LICENSE, NOTICE, CREDITS.txt and

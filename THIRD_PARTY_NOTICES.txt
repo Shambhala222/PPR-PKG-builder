@@ -17,9 +17,9 @@ ooz / Kraken decode reference (derived code inside LibProsperoPkg)
   https://github.com/powzix/ooz
 
 Drakmor Windows builder libraries
-  LibProsperoPkg.Win05.dll  — Windows 0.5 library, SHA-256
+  LibProsperoPkg.Win05.dll  (Windows 0.5 library), SHA-256
   9f589d0c685fef87c7b1c683b69417a54e4911701c4f18aeb5d675891440ba83
-  LibProsperoPkg.Win06.dll  — Windows 0.6.5 library, SHA-256
+  LibProsperoPkg.Win06.dll  (Windows 0.6.5 library), SHA-256
   d04d8660fdb0047386c94f727eec32413334353329cc9c18ce8fc7dd92d3c271
   Used as-is. Windows-only Publishing Tools / Oodle DLLs are not included.
 

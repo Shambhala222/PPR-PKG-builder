@@ -1,4 +1,4 @@
-PPR-PKG builder – unofficial macOS port
+PPR-PKG builder for macOS by Shambhala222
 
 Windows PPR-PKG builder (0.5 / 0.6.5 libraries): Drakmor
 LibProsperoPkg library: SvenGDK

@@ -1,13 +1,12 @@
-PPR-PKG builder v0.6.5 (macOS) — README
-=======================================
+PPR-PKG builder v0.6.5 for macOS by Shambhala222
+================================================
 
-This is the Mac port of Drakmor's & SvenGDK's PPR-PKG builder (Windows)
+This is the macOS port of Drakmor's and SvenGDK's PPR-PKG builder (Windows)
 by Shambhala222. Same job as Windows 0.6.5: turn a dump folder
 (or a GP5 project) into a debug .pkg.
 
-It is not a new packer. Everyday dumps use the same fast path as
-Mac 0.5 (Built-in Kraken). GP5, AC and PFS v3 use Drakmor’s 0.6.5
-library. Windows-only Oodle / Publishing Tools are not used here.
+Built-in Kraken only (Windows Publishing Tools / Oodle are not used).
+GP5, AC and PFS v3 use Drakmor's 0.6.5 library.
 
 
 What is GP5?
@@ -26,9 +25,7 @@ Use GP5… only when you actually have a .gp5 sitting next to the files.
 
 Everyday pack (a game dump on the Mac)
 --------------------------------------
-This is the fast path — same class of time as Mac 0.5
-(e.g. a mid-size dump in minutes, a ~200 GB dump around an hour,
-not many hours).
+Typical times: a mid-size dump in minutes, a ~200 GB dump around an hour.
 
 1. Source = dump folder (the one that contains sce_sys).
 2. Output = where the .pkg should go. Not inside the dump.
@@ -41,7 +38,7 @@ not many hours).
 9. Build PKG.
 
 Leave PFS v3, auto-shuffle, GP5 and AC off unless you need them.
-Those take the slow 0.6 path. There is no faster option for them.
+Those take longer. There is no faster option for them.
 
 
 Skip Mac sidecar files (._*)
@@ -80,9 +77,8 @@ image can be filled with other small pieces, so less wasted space.
 Effect: usually a slightly smaller inner image. Same game files.
 Does not change plaintext vs encrypted. Does not skip files.
 
-On this Mac app it only runs for GP5, AC or PFS v3 (the 0.6 path).
-A normal folder + PFS v2 pack ignores it — that is why everyday
-packs stay fast.
+On this macOS app it only runs for GP5, AC or PFS v3.
+A normal folder plus PFS v2 pack ignores it.
 
 
 Adjust relocation / alignment
@@ -96,7 +92,7 @@ padding shrinks.
 Effect: again, usually a slightly smaller image. Same files.
 Not a “cheat”. Not related to sidecars.
 
-Same as coalesce: only on GP5 / AC / PFS v3. Everyday v2 dumps
+Same as coalesce: only on GP5, AC or PFS v3. Everyday v2 dumps
 skip it.
 
 
@@ -109,14 +105,13 @@ as a separate tool.
 PFS v2
   The normal format. Kraken compresses the files. No extra
   “shuffle” step. This is what you want for a normal dump.
-  Same family and same speed class as the older Mac 0.5 packs.
+  The usual choice for a normal dump.
 
 PFS v3
   A newer metadata format around the same Kraken data. It can
   shuffle bytes before compression and store per-file hints.
   The .pkg will not be the same bytes as a v2 pack of the same
-  dump. Much slower (layout / dedup). That is the 0.6 library;
-  it cannot be made as fast as v2.
+  dump. Much slower.
 
 Use v2 unless a GP5 or a test explicitly needs v3.
 
@@ -135,7 +130,7 @@ Source / Output / Temporary
 Source      Dump folder, or a .gp5 if you have one.
 Output      Folder for the finished .pkg. Must not sit inside Source,
             or the .pkg would be packed into itself.
-Free:       Free space on that disk (same bytes as Finder; the app
+Free:       Free space on that disk (same bytes as Finder. The app
             shows them as GiB/TiB, Finder as GB/TB).
 Temporary   Scratch files. If this is the Mac system temp, the app
             writes big files next to Output so the internal disk
@@ -157,12 +152,11 @@ ON   Rewrite it to the major you pick. Only if you mean to.
 
 Package type
 ------------
-Application (APP)   Normal game dump. Usual choice. Fast path.
+Application (APP)   Normal game dump. Usual choice.
 Homebrew            Your own homebrew tree, not a retail dump.
-                    Fast path, same as APP.
 AC                  Extra content. Then Entitlement key (32 hex
                     characters) if the GP5 does not already have one.
-                    Uses the 0.6 path — slower. No way around that.
+                    Slower. No way around that.
 
 
 Image mode
@@ -190,7 +184,7 @@ chunks.
 
 Other checkboxes
 ----------------
-Deterministic build     ON. Same settings → same package.
+Deterministic build     ON. Same settings, same package.
 Calculate final SHA-256 Optional hash at the end. Slow on 100 GB.
                         OFF unless you want that line in the log.
 
@@ -218,5 +212,5 @@ Do not
 Apps
 ----
 fpkg-gui-0.6.5-MacOS.app    this version
-fpkg-gui-0.6.2-MacOS.app    older 0.6 — leave it alone
-fpkg-gui-0.5-MacOS.app      older app — leave it alone
+fpkg-gui-0.6.2-MacOS.app    older 0.6, leave it alone
+fpkg-gui-0.5-MacOS.app      older app, leave it alone
