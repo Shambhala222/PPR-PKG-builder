@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
@@ -58,14 +59,22 @@ internal static class MacSidecarFilter
         Directory.CreateDirectory(park);
         int moved = 0;
         DateTime lastLog = DateTime.UtcNow;
+        var files = new List<string>();
 
         foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
         {
             token.ThrowIfCancellationRequested();
             if (IsUnder(file, park))
                 continue;
-            string name = Path.GetFileName(file);
-            if (!IsSidecar(name))
+            if (!IsSidecar(Path.GetFileName(file)))
+                continue;
+            files.Add(file);
+        }
+
+        foreach (string file in files)
+        {
+            token.ThrowIfCancellationRequested();
+            if (!File.Exists(file))
                 continue;
 
             string rel = Path.GetRelativePath(source, file);
@@ -73,11 +82,18 @@ internal static class MacSidecarFilter
             string? dir = Path.GetDirectoryName(dest);
             if (!string.IsNullOrEmpty(dir))
                 Directory.CreateDirectory(dir);
-            if (File.Exists(dest))
-                File.Delete(dest);
-            File.Move(file, dest);
-            moved++;
+            try
+            {
+                if (File.Exists(dest))
+                    File.Delete(dest);
+                File.Move(file, dest);
+            }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+            {
+                continue;
+            }
 
+            moved++;
             if ((DateTime.UtcNow - lastLog).TotalMilliseconds < 350)
                 continue;
             lastLog = DateTime.UtcNow;
@@ -97,14 +113,23 @@ internal static class MacSidecarFilter
         int restored = 0;
         foreach (string file in Directory.EnumerateFiles(park, "*", SearchOption.AllDirectories))
         {
+            if (!File.Exists(file))
+                continue;
             string rel = Path.GetRelativePath(park, file);
             string dest = Path.Combine(source, rel);
             string? dir = Path.GetDirectoryName(dest);
             if (!string.IsNullOrEmpty(dir))
                 Directory.CreateDirectory(dir);
-            if (File.Exists(dest))
-                File.Delete(dest);
-            File.Move(file, dest);
+            try
+            {
+                if (File.Exists(dest))
+                    File.Delete(dest);
+                File.Move(file, dest);
+            }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+            {
+                continue;
+            }
             restored++;
         }
 
