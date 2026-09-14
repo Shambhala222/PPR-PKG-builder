@@ -51,6 +51,7 @@ internal static class Win02PackageBuilder
         public bool EnableRelocationAlignmentAdjustment { get; init; } = true;
         public bool UseLayoutLibrary { get; init; }
         public string? ApplicationDrmType { get; init; }
+        public Func<string, bool>? OnDiskFull { get; init; }
         public CancellationToken CancellationToken { get; init; }
         public required Action<string> Log { get; init; }
     }
@@ -106,10 +107,10 @@ internal static class Win02PackageBuilder
         MethodInfo build = builderType.GetMethod("Build", [optionsType, typeof(Action<string>)])
             ?? throw new InvalidOperationException("ProsperoPackageBuilder.Build was not found in the selected library.");
         object result;
+        using IDisposable? diskScope = TryBeginDiskScope(asm, request);
         try
         {
-            result = build.Invoke(null, [options, request.Log])
-                ?? throw new InvalidOperationException("The selected builder returned no result.");
+            result = InvokeBuild(build, options, request, diskScope is not null);
         }
         catch (TargetInvocationException ex)
         {
@@ -146,6 +147,94 @@ internal static class Win02PackageBuilder
 
         if (property.PropertyType == typeof(int?) && value is int number)
             property.SetValue(target, (int?)number);
+    }
+
+    private static object InvokeBuild(MethodInfo build, object options, Request request, bool libraryHandlesRetry)
+    {
+        while (true)
+        {
+            try
+            {
+                return build.Invoke(null, [options, request.Log])
+                    ?? throw new InvalidOperationException("The selected builder returned no result.");
+            }
+            catch (TargetInvocationException ex)
+            {
+                Exception inner = ex.InnerException ?? ex;
+                if (!libraryHandlesRetry && request.OnDiskFull is not null && IsDiskFull(inner))
+                {
+                    string path = TryFilePath(inner) ?? request.OutputFolder;
+                    if (request.OnDiskFull(path))
+                    {
+                        request.CancellationToken.ThrowIfCancellationRequested();
+                        continue;
+                    }
+                    throw new OperationCanceledException("The build was canceled after the disk filled up.", inner);
+                }
+                throw inner;
+            }
+        }
+    }
+
+    private static IDisposable? TryBeginDiskScope(Assembly asm, Request request)
+    {
+        if (request.OnDiskFull is null)
+            return null;
+        Type? recovery = asm.GetType("LibProsperoPkg.ProsperoDiskSpaceRecovery");
+        Type? infoType = asm.GetType("LibProsperoPkg.ProsperoDiskFullInfo");
+        if (recovery is null || infoType is null)
+            return null;
+        MethodInfo? bind = typeof(Win02PackageBuilder).GetMethod(
+            nameof(BindDiskAsk), BindingFlags.NonPublic | BindingFlags.Static);
+        object? del = bind?.MakeGenericMethod(infoType).Invoke(null, [request]);
+        Type funcType = typeof(Func<,>).MakeGenericType(infoType, typeof(bool));
+        MethodInfo? begin = recovery.GetMethod("BeginScope", [funcType, typeof(CancellationToken)]);
+        if (begin is null || del is null)
+            return null;
+        return begin.Invoke(null, [del, request.CancellationToken]) as IDisposable;
+    }
+
+    private static Func<T, bool> BindDiskAsk<T>(Request request)
+    {
+        return info =>
+        {
+            string path = typeof(T).GetProperty("Path")?.GetValue(info) as string ?? request.OutputFolder;
+            return request.OnDiskFull?.Invoke(path) ?? false;
+        };
+    }
+
+    private static bool IsDiskFull(Exception ex)
+    {
+        for (Exception? e = ex; e is not null; e = e.InnerException)
+        {
+            if (e is not IOException io)
+                continue;
+            int code = io.HResult & 0xFFFF;
+            if (io.HResult == unchecked((int)0x80070070)
+                || io.HResult == unchecked((int)0x80070027)
+                || code is 0x70 or 0x27 or 28)
+                return true;
+            string msg = io.Message ?? "";
+            if (msg.Contains("No space left", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("not enough space", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("not enough disk", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("disk is full", StringComparison.OrdinalIgnoreCase)
+                || msg.Contains("Disk full", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    private static string? TryFilePath(Exception ex)
+    {
+        for (Exception? e = ex; e is not null; e = e.InnerException)
+        {
+            if (e is FileNotFoundException missing && !string.IsNullOrWhiteSpace(missing.FileName))
+                return missing.FileName;
+            if (e is DirectoryNotFoundException dir && !string.IsNullOrWhiteSpace(dir.Message))
+                return dir.Message;
+        }
+        return null;
     }
 
     private static void SetEnum(object target, string name, string value)

@@ -131,8 +131,9 @@ Source      Game folder, exFAT image, ffpfsc image, or a .gp5.
             Browse still accepts .exfat / .xfat and .ffpfsc / .ffpfc / .ffpfs.
 Output      Folder for the finished .pkg. Must not sit inside Source,
             or the .pkg would be packed into itself.
-Free:       Free space on that disk (same bytes as Finder. The app
-            shows them as GiB/TiB, Finder as GB/TB).
+Free:       Free space on that disk, plus Needed (including temp
+            folder). Same bytes as Finder (app shows GiB/TiB).
+            Build PKG warns if Needed is larger than Free.
 Temporary   Scratch files. If this is the Mac system temp, the app
             writes big files next to Output so the internal disk
             does not fill up.
@@ -210,8 +211,8 @@ That DLL is Windows-only. This Mac app always uses Built-in Kraken.
 So: same dump + Built-in on both sides can match.
 Windows default Oodle Reduced will not match the Mac .pkg byte for byte.
 
-Windows 0.6.5 can pause when the disk is full and ask to Retry.
-That dialog is not in this Mac app.
+If the disk fills up, the build pauses. Free space, then Retry.
+Cancel stops the pack. Temporary files are kept until you cancel.
 
 
 Do not

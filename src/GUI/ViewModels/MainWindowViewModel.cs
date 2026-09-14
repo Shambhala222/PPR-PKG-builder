@@ -74,6 +74,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private ChoiceOption? _predictionLevel;
     private ChoiceOption? _sourceKind;
     private LanguageOption _selectedLanguage = UiText.Languages[0];
+    private long _sourceBytes;
+    private bool _sourceIsImage;
+    private CancellationTokenSource? _sourceMeasureCts;
 
     public MainWindowViewModel(IStorageService storage)
     {
@@ -201,7 +204,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _sourceFolder, value))
+            {
                 LoadSourceMetadata();
+                ScheduleSourceMeasure();
+            }
         }
     }
 
@@ -221,7 +227,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public string TemporaryFolder
     {
         get => _temporaryFolder;
-        set => SetProperty(ref _temporaryFolder, value);
+        set
+        {
+            if (SetProperty(ref _temporaryFolder, value))
+                RefreshFreeSpace();
+        }
     }
 
     public string ContentId
@@ -918,6 +928,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
+        if (!await ConfirmSpaceOrContinueAsync())
+            return;
+
         IsBusy = true;
         Status = T("status_building");
         _log.Clear();
@@ -1167,6 +1180,102 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         PlayGoStatus = string.Format(T("playgo_auto"), chunks);
     }
 
+    private void ScheduleSourceMeasure()
+    {
+        _sourceMeasureCts?.Cancel();
+        _sourceMeasureCts = null;
+        _sourceBytes = 0;
+        _sourceIsImage = false;
+        string source = _sourceFolder.Trim();
+        if (string.IsNullOrEmpty(source))
+        {
+            RefreshFreeSpace();
+            return;
+        }
+
+        if (File.Exists(source)
+            && (ImageSourceSession.IsImagePath(source)
+                || ImageSourceSession.DetectKind(source) is "exfat" or "ffpfsc"))
+        {
+            try { _sourceBytes = new FileInfo(source).Length; }
+            catch (Exception) { _sourceBytes = 0; }
+            _sourceIsImage = true;
+            RefreshFreeSpace();
+            return;
+        }
+
+        string? root = ResolveSourceRoot(source);
+        if (root is null || !Directory.Exists(root))
+        {
+            RefreshFreeSpace();
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        _sourceMeasureCts = cts;
+        RefreshFreeSpace();
+        Task.Run(() =>
+        {
+            long bytes;
+            try { bytes = MeasureSourceQuiet(root, cts.Token); }
+            catch (OperationCanceledException) { return; }
+            catch (Exception) { bytes = 0; }
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (cts.IsCancellationRequested)
+                    return;
+                _sourceBytes = bytes;
+                _sourceMeasureCts = null;
+                RefreshFreeSpace();
+            });
+        }, cts.Token);
+    }
+
+    private static long MeasureSourceQuiet(string source, CancellationToken token)
+    {
+        long bytes = 0;
+        foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            token.ThrowIfCancellationRequested();
+            string name = Path.GetFileName(file);
+            if (name.StartsWith("._", StringComparison.Ordinal)
+                || name.Equals(".DS_Store", StringComparison.OrdinalIgnoreCase))
+                continue;
+            try { bytes += new FileInfo(file).Length; }
+            catch (Exception) { }
+        }
+        return bytes;
+    }
+
+    private long EstimateNeededBytes()
+    {
+        if (_sourceBytes <= 0)
+            return 0;
+        return _sourceIsImage ? _sourceBytes * 3 : _sourceBytes * 2;
+    }
+
+    private string EffectiveTempFolder()
+    {
+        string temp = _temporaryFolder.Trim();
+        string output = _outputFolder.Trim();
+        if (string.IsNullOrWhiteSpace(temp) || IsSystemTemp(temp))
+            return output;
+        return temp;
+    }
+
+    private bool OutputAndTempShareDrive()
+    {
+        string output = _outputFolder.Trim();
+        string temp = EffectiveTempFolder();
+        if (string.IsNullOrWhiteSpace(output) || string.IsNullOrWhiteSpace(temp))
+            return true;
+        DriveInfo? a = DriveForPath(output);
+        DriveInfo? b = DriveForPath(temp);
+        if (a is null || b is null)
+            return true;
+        return string.Equals(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+    }
+
     private void RefreshFreeSpace()
     {
         string output = _outputFolder.Trim();
@@ -1185,12 +1294,61 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 return;
             }
 
-            FreeSpace = string.Format(T("free_space"), BuildProgressTracker.FormatBytes(drive.AvailableFreeSpace));
+            string free = BuildProgressTracker.FormatBytes(drive.AvailableFreeSpace);
+            long needed = EstimateNeededBytes();
+            if (needed > 0)
+            {
+                FreeSpace = string.Format(
+                    T("free_and_needed"),
+                    free,
+                    BuildProgressTracker.FormatBytes(needed));
+                return;
+            }
+
+            if (_sourceMeasureCts is not null && !string.IsNullOrWhiteSpace(_sourceFolder))
+            {
+                FreeSpace = string.Format(T("free_space_measuring"), free);
+                return;
+            }
+
+            FreeSpace = string.Format(T("free_space"), free);
         }
         catch (Exception)
         {
             FreeSpace = T("free_space_fail");
         }
+    }
+
+    private async Task<bool> ConfirmSpaceOrContinueAsync()
+    {
+        long needed = EstimateNeededBytes();
+        if (needed <= 0)
+            return true;
+
+        string output = _outputFolder.Trim();
+        DriveInfo? outputDrive = DriveForPath(output);
+        if (outputDrive is null || !outputDrive.IsReady)
+            return true;
+
+        long free = outputDrive.AvailableFreeSpace;
+        if (!OutputAndTempShareDrive())
+        {
+            DriveInfo? tempDrive = DriveForPath(EffectiveTempFolder());
+            if (tempDrive is not null && tempDrive.IsReady)
+                free = Math.Min(free, tempDrive.AvailableFreeSpace);
+        }
+
+        if (free >= needed)
+            return true;
+
+        return await SpaceWarnPrompt.AskContinueAsync(
+            T("disk_full_title"),
+            string.Format(
+                T("space_warn_body"),
+                BuildProgressTracker.FormatBytes(needed),
+                BuildProgressTracker.FormatBytes(free)),
+            T("continue_anyway"),
+            T("cancel"));
     }
 
     // On macOS Path.GetPathRoot("/Volumes/SSD/foo") is "/" — the internal disk.
@@ -1333,6 +1491,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 EnableRelocationAlignmentAdjustment = RelocationAlignment,
                 UseLayoutLibrary = layoutLibrary,
                 ApplicationDrmType = "standard",
+                OnDiskFull = path => AskDiskFullRetry(path, token, log),
                 CancellationToken = token,
                 Log = log,
             });
@@ -1344,6 +1503,21 @@ public sealed partial class MainWindowViewModel : ViewModelBase
                 MacSidecarFilter.Restore(park, sourceRoot, log);
             imageSession?.Dispose();
         }
+    }
+
+    private bool AskDiskFullRetry(string path, CancellationToken token, Action<string> log)
+    {
+        log(T("disk_full_log"));
+        return DiskFullPrompt.AskRetry(
+            T("disk_full_title"),
+            T("disk_full_paused"),
+            T("disk_full_file"),
+            string.IsNullOrWhiteSpace(path) ? T("disk_full_no_file") : path,
+            T("disk_full_hint"),
+            T("disk_full_cancel_hint"),
+            T("retry"),
+            T("cancel"),
+            token);
     }
 
     private static byte[]? ParseEntitlementKey(string? value)
