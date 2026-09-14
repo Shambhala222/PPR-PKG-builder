@@ -8,6 +8,8 @@
 	<string>LibProsperoPkg.Gui</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>org.drakmor.ppr-pkg-builder.0651</string>
 	<key>CFBundleName</key>

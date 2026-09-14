@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using Avalonia.Threading;
 using LibProsperoPkg;
 using LibProsperoPkg.Gui.Localization;
@@ -58,7 +59,19 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private bool _outerCoalescing = true;
     private bool _relocationAlignment = true;
     private string _entitlementKey = "";
+    private static readonly IBrush SpaceOkBrush = new SolidColorBrush(Color.FromRgb(0x1F, 0x8A, 0x3C));
+    private static readonly IBrush SpaceBadBrush = new SolidColorBrush(Color.FromRgb(0xC4, 0x2B, 0x2B));
+    private static readonly IBrush SpaceNeutralBrush = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88));
+
     private string _freeSpace = "";
+    private string _outputSpaceNote = "";
+    private string _tempFreeSpace = "";
+    private IBrush? _outputSpaceBrush;
+    private IBrush? _outputNoteBrush;
+    private IBrush? _tempSpaceBrush;
+    private double _outputSpaceOpacity = 0.65;
+    private double _outputNoteOpacity = 0.65;
+    private double _tempSpaceOpacity = 0.65;
     private bool _isBusy;
     private string _logText = "";
     private string _status = "";
@@ -336,6 +349,60 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         get => _freeSpace;
         private set => SetProperty(ref _freeSpace, value);
+    }
+
+    public string OutputSpaceNote
+    {
+        get => _outputSpaceNote;
+        private set
+        {
+            if (SetProperty(ref _outputSpaceNote, value))
+                OnPropertyChanged(nameof(HasOutputSpaceNote));
+        }
+    }
+
+    public bool HasOutputSpaceNote => !string.IsNullOrEmpty(_outputSpaceNote);
+
+    public string TempFreeSpace
+    {
+        get => _tempFreeSpace;
+        private set => SetProperty(ref _tempFreeSpace, value);
+    }
+
+    public IBrush? OutputSpaceBrush
+    {
+        get => _outputSpaceBrush;
+        private set => SetProperty(ref _outputSpaceBrush, value);
+    }
+
+    public IBrush? OutputNoteBrush
+    {
+        get => _outputNoteBrush;
+        private set => SetProperty(ref _outputNoteBrush, value);
+    }
+
+    public IBrush? TempSpaceBrush
+    {
+        get => _tempSpaceBrush;
+        private set => SetProperty(ref _tempSpaceBrush, value);
+    }
+
+    public double OutputSpaceOpacity
+    {
+        get => _outputSpaceOpacity;
+        private set => SetProperty(ref _outputSpaceOpacity, value);
+    }
+
+    public double OutputNoteOpacity
+    {
+        get => _outputNoteOpacity;
+        private set => SetProperty(ref _outputNoteOpacity, value);
+    }
+
+    public double TempSpaceOpacity
+    {
+        get => _tempSpaceOpacity;
+        private set => SetProperty(ref _tempSpaceOpacity, value);
     }
 
     public decimal KrakenLevel
@@ -1247,11 +1314,21 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         return bytes;
     }
 
-    private long EstimateNeededBytes()
+    private long EstimatePkgBytes()
+    {
+        return _sourceBytes > 0 ? _sourceBytes : 0;
+    }
+
+    private long EstimateTempBytes()
     {
         if (_sourceBytes <= 0)
             return 0;
-        return _sourceIsImage ? _sourceBytes * 3 : _sourceBytes * 2;
+        return _sourceIsImage ? _sourceBytes * 2 : _sourceBytes;
+    }
+
+    private long EstimateNeededBytes()
+    {
+        return EstimatePkgBytes() + EstimateTempBytes();
     }
 
     private string EffectiveTempFolder()
@@ -1263,120 +1340,384 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         return temp;
     }
 
+    private string DisplayTempFolder()
+    {
+        string effective = EffectiveTempFolder();
+        if (!string.IsNullOrWhiteSpace(effective))
+            return effective;
+        return _temporaryFolder.Trim();
+    }
+
     private bool OutputAndTempShareDrive()
     {
         string output = _outputFolder.Trim();
-        string temp = EffectiveTempFolder();
+        string temp = DisplayTempFolder();
         if (string.IsNullOrWhiteSpace(output) || string.IsNullOrWhiteSpace(temp))
             return true;
         DriveInfo? a = DriveForPath(output);
         DriveInfo? b = DriveForPath(temp);
         if (a is null || b is null)
             return true;
-        return string.Equals(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+        if (string.Equals(
+            NormalizeMount(a.Name),
+            NormalizeMount(b.Name),
+            StringComparison.OrdinalIgnoreCase))
+            return true;
+        // APFS: "/" and "/System/Volumes/Data" share one free-space pool.
+        if (IsInternalDrive(a) && IsInternalDrive(b))
+            return true;
+        try
+        {
+            return !string.IsNullOrWhiteSpace(a.VolumeLabel)
+                && string.Equals(a.VolumeLabel, b.VolumeLabel, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private bool TempUsesSystemFolder()
+    {
+        string temp = _temporaryFolder.Trim();
+        return string.IsNullOrWhiteSpace(temp) || IsSystemTemp(temp);
     }
 
     private void RefreshFreeSpace()
     {
         string output = _outputFolder.Trim();
-        if (string.IsNullOrEmpty(output))
+        long pkg = EstimatePkgBytes();
+        long tempNeed = EstimateTempBytes();
+        bool measuring = _sourceMeasureCts is not null && !string.IsNullOrWhiteSpace(_sourceFolder);
+        bool sameDisk = OutputAndTempShareDrive();
+        bool? outputOk = null;
+        bool? tempOk = null;
+
+        if (string.IsNullOrWhiteSpace(output))
         {
             FreeSpace = T("free_space_none");
+            OutputSpaceNote = "";
+        }
+        else if (!TryGetDriveFree(output, out DriveInfo? outputDrive, out long outputFree))
+        {
+            FreeSpace = T("free_space_fail");
+            OutputSpaceNote = "";
+        }
+        else
+        {
+            string kind = DriveKind(outputDrive);
+            string free = BuildProgressTracker.FormatBytes(outputFree);
+            if (pkg > 0)
+            {
+                FreeSpace = string.Format(T("space_output"), kind, free, BuildProgressTracker.FormatBytes(pkg));
+                if (sameDisk)
+                {
+                    long total = pkg + tempNeed;
+                    outputOk = outputFree >= total;
+                    tempOk = outputOk;
+                    OutputSpaceNote = WithShortfall(
+                        string.Format(T("space_output_total"), BuildProgressTracker.FormatBytes(total)),
+                        outputFree,
+                        total);
+                }
+                else
+                {
+                    outputOk = outputFree >= pkg;
+                    OutputSpaceNote = WithShortfall(
+                        string.Format(T("space_output_temp_other"), BuildProgressTracker.FormatBytes(tempNeed)),
+                        outputFree,
+                        pkg);
+                }
+            }
+            else if (measuring)
+            {
+                FreeSpace = string.Format(T("space_output_measuring"), kind, free);
+                OutputSpaceNote = "";
+            }
+            else
+            {
+                FreeSpace = string.Format(T("space_output_free"), kind, free);
+                OutputSpaceNote = "";
+            }
+        }
+
+        if (TempUsesSystemFolder() && string.IsNullOrWhiteSpace(output))
+        {
+            string systemTemp = _temporaryFolder.Trim();
+            if (string.IsNullOrWhiteSpace(systemTemp))
+                systemTemp = Path.GetTempPath();
+            if (!TryGetDriveFree(systemTemp, out DriveInfo? sysDrive, out long sysFree))
+                TempFreeSpace = T("free_space_fail");
+            else
+            {
+                TempFreeSpace = string.Format(
+                    T("space_temp_system"),
+                    DriveKind(sysDrive),
+                    BuildProgressTracker.FormatBytes(sysFree));
+            }
+            ApplySpaceTones(outputOk, tempOk);
             return;
         }
 
-        try
+        if (string.IsNullOrWhiteSpace(DisplayTempFolder()))
         {
-            DriveInfo? drive = DriveForPath(output);
-            if (drive is null || !drive.IsReady)
-            {
-                FreeSpace = T("free_space_fail");
-                return;
-            }
-
-            string free = BuildProgressTracker.FormatBytes(drive.AvailableFreeSpace);
-            long needed = EstimateNeededBytes();
-            if (needed > 0)
-            {
-                FreeSpace = string.Format(
-                    T("free_and_needed"),
-                    free,
-                    BuildProgressTracker.FormatBytes(needed));
-                return;
-            }
-
-            if (_sourceMeasureCts is not null && !string.IsNullOrWhiteSpace(_sourceFolder))
-            {
-                FreeSpace = string.Format(T("free_space_measuring"), free);
-                return;
-            }
-
-            FreeSpace = string.Format(T("free_space"), free);
+            TempFreeSpace = T("space_temp_same_plain");
+            ApplySpaceTones(outputOk, tempOk);
+            return;
         }
-        catch (Exception)
+
+        if (sameDisk && !string.IsNullOrWhiteSpace(output))
         {
-            FreeSpace = T("free_space_fail");
+            TempFreeSpace = tempNeed > 0
+                ? string.Format(T("space_temp_same"), BuildProgressTracker.FormatBytes(tempNeed))
+                : T("space_temp_same_plain");
+            ApplySpaceTones(outputOk, tempOk);
+            return;
         }
+
+        if (!TryGetDriveFree(DisplayTempFolder(), out DriveInfo? tempDrive, out long tempFree))
+        {
+            TempFreeSpace = T("free_space_fail");
+            ApplySpaceTones(outputOk, tempOk);
+            return;
+        }
+
+        string tempKind = DriveKind(tempDrive);
+        string tempFreeText = BuildProgressTracker.FormatBytes(tempFree);
+        if (tempNeed > 0)
+        {
+            tempOk = tempFree >= tempNeed;
+            TempFreeSpace = WithShortfall(
+                string.Format(T("space_temp_other"), tempKind, tempFreeText, BuildProgressTracker.FormatBytes(tempNeed)),
+                tempFree,
+                tempNeed);
+        }
+        else if (measuring)
+            TempFreeSpace = string.Format(T("space_output_measuring"), tempKind, tempFreeText);
+        else
+            TempFreeSpace = string.Format(T("space_temp_other_free"), tempKind, tempFreeText);
+
+        ApplySpaceTones(outputOk, tempOk);
+    }
+
+    private void ApplySpaceTones(bool? outputOk, bool? tempOk)
+    {
+        OutputSpaceBrush = BrushFor(outputOk);
+        OutputNoteBrush = BrushFor(outputOk);
+        TempSpaceBrush = BrushFor(tempOk);
+        OutputSpaceOpacity = outputOk is null ? 0.7 : 0.95;
+        OutputNoteOpacity = outputOk is null ? 0.7 : 0.95;
+        TempSpaceOpacity = tempOk is null ? 0.7 : 0.95;
+    }
+
+    private static IBrush BrushFor(bool? ok) => ok switch
+    {
+        true => SpaceOkBrush,
+        false => SpaceBadBrush,
+        _ => SpaceNeutralBrush,
+    };
+
+    private string WithShortfall(string text, long freeBytes, long neededBytes)
+    {
+        if (neededBytes <= 0 || freeBytes >= neededBytes)
+            return text;
+        return text + " " + string.Format(T("space_short"), BuildProgressTracker.FormatBytes(neededBytes - freeBytes));
     }
 
     private async Task<bool> ConfirmSpaceOrContinueAsync()
     {
-        long needed = EstimateNeededBytes();
-        if (needed <= 0)
+        long pkg = EstimatePkgBytes();
+        long tempNeed = EstimateTempBytes();
+        if (pkg <= 0 && tempNeed <= 0)
             return true;
 
         string output = _outputFolder.Trim();
-        DriveInfo? outputDrive = DriveForPath(output);
-        if (outputDrive is null || !outputDrive.IsReady)
+        if (!TryGetDriveFree(output, out DriveInfo? outputDrive, out long outputFree))
             return true;
 
-        long free = outputDrive.AvailableFreeSpace;
-        if (!OutputAndTempShareDrive())
+        if (OutputAndTempShareDrive())
         {
-            DriveInfo? tempDrive = DriveForPath(EffectiveTempFolder());
-            if (tempDrive is not null && tempDrive.IsReady)
-                free = Math.Min(free, tempDrive.AvailableFreeSpace);
+            long needed = pkg + tempNeed;
+            if (outputFree >= needed)
+                return true;
+            return await SpaceWarnPrompt.AskContinueAsync(
+                T("disk_full_title"),
+                string.Format(
+                    T("space_warn_same"),
+                    BuildProgressTracker.FormatBytes(needed),
+                    DriveKind(outputDrive),
+                    BuildProgressTracker.FormatBytes(pkg),
+                    BuildProgressTracker.FormatBytes(tempNeed),
+                    BuildProgressTracker.FormatBytes(outputFree)),
+                T("continue_anyway"),
+                T("cancel"));
         }
 
-        if (free >= needed)
+        var parts = new List<string>();
+        if (outputFree < pkg)
+        {
+            parts.Add(string.Format(
+                T("space_warn_output"),
+                DriveKind(outputDrive),
+                BuildProgressTracker.FormatBytes(pkg),
+                BuildProgressTracker.FormatBytes(outputFree)));
+        }
+
+        if (TryGetDriveFree(DisplayTempFolder(), out DriveInfo? tempDrive, out long tempFree)
+            && tempFree < tempNeed)
+        {
+            parts.Add(string.Format(
+                T("space_warn_temp"),
+                DriveKind(tempDrive),
+                BuildProgressTracker.FormatBytes(tempNeed),
+                BuildProgressTracker.FormatBytes(tempFree)));
+        }
+
+        if (parts.Count == 0)
             return true;
 
         return await SpaceWarnPrompt.AskContinueAsync(
             T("disk_full_title"),
-            string.Format(
-                T("space_warn_body"),
-                BuildProgressTracker.FormatBytes(needed),
-                BuildProgressTracker.FormatBytes(free)),
+            string.Join("\n\n", parts),
             T("continue_anyway"),
             T("cancel"));
     }
 
-    // On macOS Path.GetPathRoot("/Volumes/SSD/foo") is "/" — the internal disk.
+    private string DriveKind(DriveInfo? drive)
+    {
+        return IsInternalDrive(drive) ? T("disk_internal") : T("disk_external");
+    }
+
+    private static bool IsInternalDrive(DriveInfo? drive)
+    {
+        if (drive is null)
+            return true;
+        string name = NormalizeMount(drive.Name);
+        if (name == "/"
+            || name.StartsWith("/System/Volumes", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("/private", StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (!name.StartsWith("/Volumes/", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        try
+        {
+            var root = new DriveInfo("/");
+            string rootLabel = root.VolumeLabel;
+            string thisLabel = drive.VolumeLabel;
+            if (!string.IsNullOrWhiteSpace(rootLabel)
+                && string.Equals(rootLabel, thisLabel, StringComparison.OrdinalIgnoreCase))
+                return true;
+            string volName = name["/Volumes/".Length..];
+            if (!string.IsNullOrWhiteSpace(rootLabel)
+                && string.Equals(volName, rootLabel, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        catch (Exception)
+        {
+        }
+
+        return false;
+    }
+
+    private static bool TryGetDriveFree(string path, out DriveInfo? drive, out long freeBytes)
+    {
+        drive = DriveForPath(path);
+        freeBytes = 0;
+        if (drive is null)
+            return false;
+        try
+        {
+            if (!IsDriveReady(drive))
+            {
+                if (!IsInternalDrive(drive))
+                    return false;
+                var root = new DriveInfo("/");
+                if (!IsDriveReady(root))
+                    return false;
+                drive = root;
+            }
+
+            freeBytes = drive.AvailableFreeSpace;
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsDriveReady(DriveInfo drive)
+    {
+        try { return drive.IsReady; }
+        catch (Exception) { return false; }
+    }
+
+    private static string NormalizeMount(string name)
+    {
+        name = name.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return name.Length == 0 ? Path.DirectorySeparatorChar.ToString() : name;
+    }
+
+    // On macOS Path.GetPathRoot("/Volumes/SSD/foo") is "/" (the internal disk).
     // Pick the longest mounted volume prefix so an external SSD wins over "/".
+    // "/" must match /Users and /var/folders: name+"/" becomes "//" and misses them.
+    // Prefer a ready mount. Fall back to "/" for internal paths that only exist
+    // via symlink/firmlink (/var -> /private/var).
     private static DriveInfo? DriveForPath(string path)
     {
         string full;
         try { full = Path.GetFullPath(path); }
         catch (Exception) { return null; }
 
-        DriveInfo? best = null;
-        int bestLength = -1;
+        DriveInfo? bestReady = null;
+        DriveInfo? bestAny = null;
+        int bestReadyLength = -1;
+        int bestAnyLength = -1;
         foreach (DriveInfo drive in DriveInfo.GetDrives())
         {
-            string name = drive.Name.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            if (name.Length == 0)
-                name = Path.DirectorySeparatorChar.ToString();
-
-            bool match = string.Equals(full, name, StringComparison.OrdinalIgnoreCase)
-                || full.StartsWith(name + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-                || full.StartsWith(name + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
-            if (!match || name.Length < bestLength)
+            string name = NormalizeMount(drive.Name);
+            if (!IsUsefulMount(name) || !PathIsOnMount(full, name))
                 continue;
-            best = drive;
-            bestLength = name.Length;
+            if (name.Length >= bestAnyLength)
+            {
+                bestAny = drive;
+                bestAnyLength = name.Length;
+            }
+            if (!IsDriveReady(drive) || name.Length < bestReadyLength)
+                continue;
+            bestReady = drive;
+            bestReadyLength = name.Length;
         }
 
-        return best;
+        DriveInfo? found = bestReady ?? bestAny;
+        if (found is not null)
+            return found;
+        if (full.StartsWith("/Volumes/", StringComparison.OrdinalIgnoreCase))
+            return null;
+        try { return new DriveInfo("/"); }
+        catch (Exception) { return null; }
+    }
+
+    private static bool PathIsOnMount(string full, string mount)
+    {
+        if (string.Equals(full, mount, StringComparison.OrdinalIgnoreCase))
+            return true;
+        if (mount == "/")
+            return full.StartsWith('/');
+        return full.StartsWith(mount + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || full.StartsWith(mount + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsUsefulMount(string name)
+    {
+        if (name == "/dev")
+            return false;
+        if (name.Contains("AppTranslocation", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (name.Equals("/System/Volumes/Data/home", StringComparison.OrdinalIgnoreCase))
+            return false;
+        return true;
     }
 
     private static string? ResolveSourceRoot(string source)

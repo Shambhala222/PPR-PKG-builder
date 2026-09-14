@@ -124,14 +124,22 @@
                     <TextBox Text="{Binding OutputFolder}" />
                     <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowseOutputCommand}" />
                   </Grid>
-                  <TextBlock Text="{Binding FreeSpace}" FontSize="11" Opacity="0.65" />
+                  <TextBlock Text="{Binding FreeSpace}" FontSize="11" TextWrapping="Wrap"
+                             Foreground="{Binding OutputSpaceBrush}" Opacity="{Binding OutputSpaceOpacity}" />
+                  <TextBlock Text="{Binding OutputSpaceNote}" IsVisible="{Binding HasOutputSpaceNote}"
+                             FontSize="11" TextWrapping="Wrap"
+                             Foreground="{Binding OutputNoteBrush}" Opacity="{Binding OutputNoteOpacity}" />
                 </StackPanel>
 
                 <TextBlock Grid.Row="3" Classes="lbl" Text="{Binding TemporaryLabel}" />
-                <Grid Grid.Row="3" Grid.Column="1" ColumnDefinitions="*,Auto">
-                  <TextBox Text="{Binding TemporaryFolder}" />
-                  <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowseTemporaryCommand}" />
-                </Grid>
+                <StackPanel Grid.Row="3" Grid.Column="1" Spacing="2">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Text="{Binding TemporaryFolder}" />
+                    <Button Grid.Column="1" Classes="browse" Content="{Binding BrowseLabel}" Command="{Binding BrowseTemporaryCommand}" />
+                  </Grid>
+                  <TextBlock Text="{Binding TempFreeSpace}" FontSize="11" TextWrapping="Wrap"
+                             Foreground="{Binding TempSpaceBrush}" Opacity="{Binding TempSpaceOpacity}" />
+                </StackPanel>
 
                 <TextBlock Grid.Row="4" Classes="lbl" Text="{Binding ContentIdLabel}" />
                 <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ContentId}" />

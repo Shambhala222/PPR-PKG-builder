@@ -131,12 +131,17 @@ Source      Game folder, exFAT image, ffpfsc image, or a .gp5.
             Browse still accepts .exfat / .xfat and .ffpfsc / .ffpfc / .ffpfs.
 Output      Folder for the finished .pkg. Must not sit inside Source,
             or the .pkg would be packed into itself.
-Free:       Free space on that disk, plus Needed (including temp
-            folder). Same bytes as Finder (app shows GiB/TiB).
-            Build PKG warns if Needed is larger than Free.
-Temporary   Scratch files. If this is the Mac system temp, the app
-            writes big files next to Output so the internal disk
-            does not fill up.
+Free:       Output shows that disk (internal or external), free
+            space, and the size of the .pkg. If Temporary is on the
+            same disk, a second line shows the total (.pkg + temp).
+            Temporary only shows its own share. Two disks: Output
+            says temp is elsewhere. Same bytes as Finder (app shows
+            GiB/TiB). A short-by line appears if a disk is tight.
+            Build PKG warns if a disk is short.
+Temporary   Scratch files. Choosing Output copies this onto the
+            output folder so a large inner image does not fill the
+            Mac disk. Change it to another disk and that disk's
+            free space is shown instead.
 
 
 Content ID, Title, Version, Passcode
