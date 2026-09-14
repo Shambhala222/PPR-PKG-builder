@@ -88,7 +88,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private ChoiceOption? _sourceKind;
     private LanguageOption _selectedLanguage = UiText.Languages[0];
     private long _sourceBytes;
-    private bool _sourceIsImage;
+    private bool _sourceNeedsExtract;
     private CancellationTokenSource? _sourceMeasureCts;
 
     public MainWindowViewModel(IStorageService storage)
@@ -1252,7 +1252,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _sourceMeasureCts?.Cancel();
         _sourceMeasureCts = null;
         _sourceBytes = 0;
-        _sourceIsImage = false;
+        _sourceNeedsExtract = false;
         string source = _sourceFolder.Trim();
         if (string.IsNullOrEmpty(source))
         {
@@ -1266,8 +1266,27 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         {
             try { _sourceBytes = new FileInfo(source).Length; }
             catch (Exception) { _sourceBytes = 0; }
-            _sourceIsImage = true;
+            string kind = ImageSourceSession.DetectKind(source);
+            _sourceNeedsExtract = kind == "ffpfsc";
             RefreshFreeSpace();
+            var imageCts = new CancellationTokenSource();
+            _sourceMeasureCts = imageCts;
+            Task.Run(() =>
+            {
+                long bytes;
+                try { bytes = ImageSourceSession.MeasurePayloadBytes(source, imageCts.Token); }
+                catch (OperationCanceledException) { return; }
+                catch (Exception) { bytes = 0; }
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (imageCts.IsCancellationRequested)
+                        return;
+                    if (bytes > 0)
+                        _sourceBytes = bytes;
+                    _sourceMeasureCts = null;
+                    RefreshFreeSpace();
+                });
+            }, imageCts.Token);
             return;
         }
 
@@ -1323,7 +1342,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     {
         if (_sourceBytes <= 0)
             return 0;
-        return _sourceIsImage ? _sourceBytes * 2 : _sourceBytes;
+        return _sourceNeedsExtract ? _sourceBytes * 2 : _sourceBytes;
     }
 
     private long EstimateNeededBytes()
@@ -1757,6 +1776,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         token.ThrowIfCancellationRequested();
         string workTemp = ResolveLargeBuildTemp(temp, output, log);
         ImageSourceSession? imageSession = null;
+        ParamMountOverlay? paramOverlay = null;
         ParamDrmPatch? drmPatch = null;
         string packRoot = source;
         if (ImageSourceSession.IsImagePath(source) || (File.Exists(source) && ImageSourceSession.DetectKind(source) != "folder"))
@@ -1766,10 +1786,20 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             packRoot = imageSession.AppFolder;
             if (imageSession.IsReadOnlyMount && ParamDrmPatch.NeedsStandard(packRoot))
             {
-                log("exFAT image is read-only — extracting so param.json can be packed as \"standard\".");
-                imageSession.Dispose();
-                imageSession = PrepareImageSource(source, kind, workTemp, token, log, forceExtract: true);
-                packRoot = imageSession.AppFolder;
+                try
+                {
+                    paramOverlay = ParamMountOverlay.Create(packRoot, workTemp, SkipMacSidecars, log);
+                    packRoot = paramOverlay.Root;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    log("Could not overlay param.json (" + ex.Message + ") — extracting the exFAT image.");
+                    paramOverlay?.Dispose();
+                    paramOverlay = null;
+                    imageSession.Dispose();
+                    imageSession = PrepareImageSource(source, kind, workTemp, token, log, forceExtract: true);
+                    packRoot = imageSession.AppFolder;
+                }
             }
         }
 
@@ -1842,6 +1872,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             drmPatch?.Dispose();
             if (Directory.Exists(sourceRoot))
                 MacSidecarFilter.Restore(park, sourceRoot, log);
+            paramOverlay?.Dispose();
             imageSession?.Dispose();
         }
     }

@@ -57,6 +57,15 @@ internal sealed class ParamDrmPatch : IDisposable
         return new ParamDrmPatch(path, original);
     }
 
+    public static bool WriteStandardCopy(string sourceParam, string destParam)
+    {
+        byte[] original = File.ReadAllBytes(sourceParam);
+        string? dir = Path.GetDirectoryName(destParam);
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+        return TryWriteStandard(destParam, original);
+    }
+
     public void Dispose()
     {
         if (_restored)

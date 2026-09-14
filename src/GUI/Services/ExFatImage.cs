@@ -136,6 +136,17 @@ internal sealed class ExFatImage : IDisposable
 		}
 	}
 
+	public long SumAppPayloadBytes()
+	{
+		long bytes = 0;
+		foreach (ExFatEntry item in EnumerateFiles(AppRoot))
+		{
+			if (!IsJunk(item.Name) && !IsJunkDirectory(item.RelativePath))
+				bytes += item.Size;
+		}
+		return bytes;
+	}
+
 	public ExFatInspect Inspect()
 	{
 		string appRoot = AppRoot;

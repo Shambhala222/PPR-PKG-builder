@@ -155,6 +155,62 @@ internal sealed class ImageSourceSession : IDisposable
 		}
 	}
 
+	public static long MeasurePayloadBytes(string path, CancellationToken token)
+	{
+		token.ThrowIfCancellationRequested();
+		IMemoryReader reader = OpenLogicalReader(path, out long length, out IDisposable extra);
+		try
+		{
+			if (!IsPfsMagic(reader) && ExFatImage.FindVolumeBase(reader, length) >= 0)
+			{
+				using var image = ExFatImage.Open(reader, length);
+				return image.SumAppPayloadBytes();
+			}
+
+			List<ProsperoPfsReader.File> files = new ProsperoPfsReader(reader, 0uL, null, null, null, 0L).GetAllFiles().ToList();
+			if (files.Count == 0)
+				return length;
+			ProsperoPfsReader.File inner = files.FirstOrDefault(f =>
+					f.name.EndsWith(".exfat", StringComparison.OrdinalIgnoreCase)
+					|| f.name.EndsWith(".xfat", StringComparison.OrdinalIgnoreCase))
+				?? files.OrderByDescending(f => f.size).First();
+			return SumInnerPayload(inner, token);
+		}
+		finally
+		{
+			DisposeLogical(reader, extra);
+		}
+	}
+
+	private static long SumInnerPayload(ProsperoPfsReader.File inner, CancellationToken token)
+	{
+		token.ThrowIfCancellationRequested();
+		IMemoryReader view = inner.GetView();
+		if (inner.size >= 4 && inner.flags.HasFlag(ProsperoInodeFlags.compressed))
+		{
+			var magic = new byte[4];
+			view.Read(0, magic, 0, 4);
+			if (magic[0] == (byte)'P' && magic[1] == (byte)'F' && magic[2] == (byte)'S' && magic[3] == (byte)'C')
+			{
+				var pfsc = new ProsperoPfscReader(view);
+				if (ExFatImage.FindVolumeBase(pfsc, pfsc.DataLength) >= 0)
+				{
+					using var image = ExFatImage.Open(pfsc, pfsc.DataLength);
+					return image.SumAppPayloadBytes();
+				}
+				return pfsc.DataLength;
+			}
+		}
+
+		if (ExFatImage.FindVolumeBase(view, inner.size) >= 0)
+		{
+			using var image = ExFatImage.Open(view, inner.size);
+			return image.SumAppPayloadBytes();
+		}
+
+		return inner.size;
+	}
+
 	public static ImageSourceSession OpenFolder(string folder)
 	{
 		return new ImageSourceSession(Path.GetFullPath(folder), readOnlyMount: false, "folder", null, null);

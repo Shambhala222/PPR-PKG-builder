@@ -135,9 +135,11 @@ Free:       Output shows that disk (internal or external), free
             space, and the size of the .pkg. If Temporary is on the
             same disk, a second line shows the total (.pkg + temp).
             Temporary only shows its own share. Two disks: Output
-            says temp is elsewhere. Same bytes as Finder (app shows
-            GiB/TiB). A short-by line appears if a disk is tight.
-            Build PKG warns if a disk is short.
+            says temp is elsewhere. Game folder and mounted exFAT
+            need about 2x the dump. ffpfsc needs about 3x the
+            unpacked files (extract + .pkg + temp), not 3x the
+            small image file. A short-by line appears if a disk
+            is tight. Build PKG warns if a disk is short.
 Temporary   Scratch files. Choosing Output copies this onto the
             output folder so a large inner image does not fill the
             Mac disk. Change it to another disk and that disk's
