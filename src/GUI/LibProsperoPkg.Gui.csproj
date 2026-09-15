@@ -9,7 +9,7 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AssemblyName>LibProsperoPkg.Gui</AssemblyName>
     <RootNamespace>LibProsperoPkg.Gui</RootNamespace>
-    <Version>0.6.5.1</Version>
+    <Version>0.6.5.2</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +33,10 @@
     <Content Include="..\..\lib\fpkg-0.6.5\LibProsperoPkg.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>LibProsperoPkg.Win06.dll</Link>
+    </Content>
+    <Content Include="osx\libcrypto.3.dylib">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>libcrypto.3.dylib</Link>
     </Content>
   </ItemGroup>
 

@@ -1,4 +1,4 @@
-PPR-PKG Builder v0.6.5.1 for macOS by Shambhala222
+PPR-PKG Builder v0.6.5.2 for macOS by Shambhala222
 ==================================================
 
 This is the macOS port of Drakmor's and SvenGDK's PPR-PKG builder (Windows)
@@ -7,6 +7,10 @@ exFAT image, an ffpfsc image, or a GP5 project into a debug .pkg.
 
 Built-in Kraken only (Windows Publishing Tools / Oodle are not used).
 GP5, AC and PFS v3 use Drakmor's 0.6.5 library.
+
+macOS 27: 0.6.5.2 bundles OpenSSL 3 (libcrypto.3.dylib) so SHA3 does not
+load Apple's blocked system libcrypto. Same packer and speed as 0.6.5.1
+on older macOS.
 
 
 What is GP5?
@@ -232,7 +236,6 @@ Do not
 
 Apps
 ----
-fpkg-gui-0.6.5.1-MacOS.app  this version
+fpkg-gui-0.6.5.2-MacOS.app  this version
+fpkg-gui-0.6.5.1-MacOS.app  previous 0.6.5.1, leave it alone
 fpkg-gui-0.6.5-MacOS.app    older 0.6.5, leave it alone
-fpkg-gui-0.6.2-MacOS.app    older 0.6, leave it alone
-fpkg-gui-0.5-MacOS.app      older app, leave it alone

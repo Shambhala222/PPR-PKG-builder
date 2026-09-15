@@ -42,3 +42,8 @@ CommunityToolkit.HighPerformance
 .NET runtime (self-contained osx-arm64 publish)
   MIT License
   https://github.com/dotnet/runtime
+
+OpenSSL 3 (libcrypto.3.dylib, bundled for SHA3-256 on macOS)
+  Apache License 2.0
+  https://www.openssl.org/
+  Copyright OpenSSL Software Foundation. See LICENSE.txt shipped with OpenSSL 3.

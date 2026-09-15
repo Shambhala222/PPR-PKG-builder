@@ -14,12 +14,12 @@ Packing options are explained in `README-PACK.txt`.
 
 ## Download and run
 
-Download `PPR-PKG-builder-0.6.5.1-macos-arm64.zip` from
+Download `PPR-PKG-builder-0.6.5.2-macos-arm64.zip` from
 [Releases](https://github.com/Shambhala222/PPR-PKG-builder/releases).
 After extraction:
 
 ```
-PPR-PKG-builder-0.6.5.1-macos-arm64/
+PPR-PKG-builder-0.6.5.2-macos-arm64/
   PPR-PKG Builder.app
   README.md
   README-PACK.txt
@@ -69,9 +69,10 @@ dotnet publish src/GUI/LibProsperoPkg.Gui.csproj \
 
 The published folder is the app executable tree. To wrap it as
 `PPR-PKG Builder.app`, copy those files into `Contents/MacOS`, use
-`src/GUI/osx/Info-0.6.5.1.plist` as `Contents/Info.plist`, add
+`src/GUI/osx/Info-0.6.5.2.plist` as `Contents/Info.plist`, add
 `AppIcon.icns`, and ad-hoc sign with `src/GUI/osx/entitlements.plist`.
 
-The Drakmor Windows libraries (`lib/fpkg-0.5` and `lib/fpkg-0.6.5`)
-are required next to the published binary as `LibProsperoPkg.Win05.dll`
-and `LibProsperoPkg.Win06.dll`.
+The Windows packer libraries in `lib/` are required next to the published
+binary as `LibProsperoPkg.Win05.dll` and `LibProsperoPkg.Win06.dll`.
+macOS 27 needs the bundled `libcrypto.3.dylib` next to the executable so
+SHA3 does not load Apple's blocked system libcrypto.

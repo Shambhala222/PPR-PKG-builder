@@ -136,7 +136,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     }
 
     public string WindowTitle { get; private set; } = "";
-    public string AppVersion { get; } = "v0.6.5.1";
+    public string AppVersion { get; } = "v0.6.5.2";
     public string Heading { get; private set; } = "";
     public string Subtitle { get; private set; } = "";
     public string Copyright { get; private set; } = "";

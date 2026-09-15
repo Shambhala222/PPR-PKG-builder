@@ -22,7 +22,7 @@ public static class UiText
 
     private static readonly Dictionary<string, string> EnglishMap = new()
     {
-        ["window"] = "PPR-PKG Builder v0.6.5.1",
+        ["window"] = "PPR-PKG Builder v0.6.5.2",
         ["heading"] = "PPR-PKG Builder",
         ["subtitle"] = "Build PS5 FPKG from a Game folder, exFAT image, ffpfsc image or GP5 project",
         ["copyright"] = "© Drakmor & SvenGDK  ·  macOS port by Shambhala222",
@@ -259,7 +259,7 @@ public static class UiText
 
     private static readonly Dictionary<string, string> RussianMap = new()
     {
-        ["window"] = "PPR-PKG Builder v0.6.5.1",
+        ["window"] = "PPR-PKG Builder v0.6.5.2",
         ["heading"] = "PPR-PKG Builder",
         ["subtitle"] = "Сборка PS5 FPKG из игровой папки, exFAT-образа, ffpfsc-образа или GP5-проекта",
         ["copyright"] = "© Drakmor & SvenGDK  ·  macOS-порт: Shambhala222",
