@@ -1,16 +1,15 @@
-PPR-PKG Builder v0.6.5.2 for macOS by Shambhala222
+PPR-PKG Builder v0.8.2 for macOS by Shambhala222
 ==================================================
 
 This is the macOS port of Drakmor's and SvenGDK's PPR-PKG builder (Windows)
-by Shambhala222. Same job as Windows 0.6.5: turn a game folder, an
-exFAT image, an ffpfsc image, or a GP5 project into a debug .pkg.
+by Shambhala222. Three tabs: Plain Build, Drakmor's SDK Fix v12, Inspect.
 
-Built-in Kraken only (Windows Publishing Tools / Oodle are not used).
-GP5, AC and PFS v3 use Drakmor's 0.6.5 library.
+Plain Build is the Built-in Kraken packer (Windows Publishing Tools /
+Oodle are not used). GP5, AC and PFS v3 use Drakmor's 0.6.5 library.
 
-macOS 27: 0.6.5.2 bundles OpenSSL 3 (libcrypto.3.dylib) so SHA3 does not
-load Apple's blocked system libcrypto. Same packer and speed as 0.6.5.1
-on older macOS.
+macOS 27: OpenSSL 3 (libcrypto.3.dylib) is bundled so SHA3 does not
+load Apple's blocked system libcrypto. Same Plain Build packer and speed
+as 0.6.5.2 on older macOS.
 
 
 What is GP5?
@@ -217,7 +216,7 @@ Calculate final SHA-256 Optional hash at the end. Slow on 100 GB.
 What Mac cannot copy from Windows
 ---------------------------------
 Windows can use “Original Oodle Reduced” (Publishing Tools DLL).
-That DLL is Windows-only. This Mac app always uses Built-in Kraken.
+That DLL is Windows-only. Plain Build always uses Built-in Kraken.
 
 So: same dump + Built-in on both sides can match.
 Windows default Oodle Reduced will not match the Mac .pkg byte for byte.
@@ -226,16 +225,41 @@ If the disk fills up, the build pauses. Free space, then Retry.
 Cancel stops the pack. Temporary files are kept until you cancel.
 
 
+Drakmor's SDK Fix v12
+---------------------
+Separate tab. Uses Drakmor's SDK Fix 12 tools through bundled Wine, not
+the Built-in Kraken packer.
+
+Needs a 96-byte sce_sys/keystone in the dump. The dump folder is not
+changed. Generated files go to Temporary / Output.
+
+PlayGo chunks: 1 through 255, default 100 (same as the Windows Fix 12
+GUI). Compression -4 through 9, default 7. Optional reference PKG builds
+a patch plus a .remastered.pkg companion. Full APP packs pick
+attributePub from unpacked size; patch builds keep the dump value.
+
+Finder AppleDouble files (._*) and .DS_Store are left out of the GP5.
+Windows dumps do not have those files.
+
+Verify PKG / Extract PKG on this tab use the SDK publisher. Inspect
+(open a .pkg and unpack the files) stays on the Inspect tab.
+
+First SDK run may initialise Wine. That tab needs Rosetta on Apple
+Silicon.
+
+
 Do not
 ------
 - Put Output or Temporary inside the dump.
 - Pick GP5 unless you have a .gp5.
 - Turn on PFS v3 / shuffle “just to try” on a full game.
 - Cancel a long pack unless you want to throw that run away.
+- Use SDK Fix without a 96-byte keystone. Use Plain Build instead.
 
 
 Apps
 ----
-fpkg-gui-0.6.5.2-MacOS.app  this version
+PPR-PKG Builder.app         this version (0.8.2)
+fpkg-gui-0.6.5.2-MacOS.app  previous 0.6.5.2, leave it alone
 fpkg-gui-0.6.5.1-MacOS.app  previous 0.6.5.1, leave it alone
 fpkg-gui-0.6.5-MacOS.app    older 0.6.5, leave it alone

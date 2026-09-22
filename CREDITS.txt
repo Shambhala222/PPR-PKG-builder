@@ -1,6 +1,6 @@
 PPR-PKG Builder for macOS by Shambhala222
 
-Windows PPR-PKG builder (0.5 / 0.6.5 libraries): Drakmor
+Windows PPR-PKG builder and SDK Fix 12 tools: Drakmor
 LibProsperoPkg library: SvenGDK
 https://github.com/SvenGDK/LibProsperoPKG
 

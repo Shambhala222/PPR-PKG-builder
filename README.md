@@ -6,20 +6,26 @@ An unofficial macOS port by Shambhala222 of
 This is an independent community edition, not an official Drakmor or
 SvenGDK release.
 
-The app builds a debug PS5 `.pkg` from a game folder, an exFAT image,
-an ffpfsc image, or a GP5 project on macOS (Apple Silicon). Built-in
-Kraken only (Windows Publishing Tools / Oodle are not used).
+The app builds a debug PS5 `.pkg` on macOS (Apple Silicon) from a game
+folder, an exFAT image, an ffpfsc image, or a GP5 project. There are
+three tabs:
+
+- **Plain Build**: Built-in Kraken packer (Windows Publishing Tools /
+  Oodle are not used).
+- **Drakmor's SDK Fix v12**: bundled SDK Fix 12 publisher (Wine) for
+  dumps that include a 96-byte `sce_sys/keystone`.
+- **Inspect**: open a `.pkg` and unpack the files.
 
 Packing options are explained in `README-PACK.txt`.
 
 ## Download and run
 
-Download `PPR-PKG-builder-0.6.5.2-macos-arm64.zip` from
+Download `PPR-PKG-builder-0.8.2-macos-arm64.zip` from
 [Releases](https://github.com/Shambhala222/PPR-PKG-builder/releases).
 After extraction:
 
 ```
-PPR-PKG-builder-0.6.5.2-macos-arm64/
+PPR-PKG-builder-0.8.2-macos-arm64/
   PPR-PKG Builder.app
   README.md
   README-PACK.txt
@@ -30,7 +36,8 @@ PPR-PKG-builder-0.6.5.2-macos-arm64/
 ```
 
 Open **PPR-PKG Builder.app**. This build is for macOS, Apple Silicon.
-The .NET runtime is bundled. The app is ad-hoc signed and is not
+The .NET runtime is bundled. The SDK Fix tab also bundles Wine and
+Python, so the zip is large. The app is ad-hoc signed and is not
 Apple-notarized.
 
 **First launch (macOS Gatekeeper).** After a GitHub download, macOS may
@@ -48,10 +55,15 @@ infected download. Unlock it once:
 After that you can always open the app with a normal double-click. macOS
 will not show these warnings again.
 
+Plain Build and Inspect run as native Apple Silicon. The SDK Fix tab
+starts Intel Wine through Rosetta. If macOS asks to install Rosetta,
+that is only for that tab.
+
 ## Credits and license
 
 Unofficial macOS port by **Shambhala222**, based on **Drakmor's**
-Windows PPR-PKG builder and **SvenGDK's** LibProsperoPkg.
+Windows PPR-PKG builder, **Drakmor's** SDK Fix 12 tools, and
+**SvenGDK's** LibProsperoPkg.
 
 Released under **GPLv3**, with upstream copyright notices and third-party
 licenses retained. See LICENSE, NOTICE, CREDITS.txt and
@@ -67,10 +79,9 @@ dotnet publish src/GUI/LibProsperoPkg.Gui.csproj \
   -o publish
 ```
 
-The published folder is the app executable tree. To wrap it as
-`PPR-PKG Builder.app`, copy those files into `Contents/MacOS`, use
-`src/GUI/osx/Info-0.6.5.2.plist` as `Contents/Info.plist`, add
-`AppIcon.icns`, and ad-hoc sign with `src/GUI/osx/entitlements.plist`.
+The Host overlay (`src/Host`) adds the SDK Fix tab. Runtime scripts live
+in `src/SDKRuntime`. The release app also contains a private Wine and
+CPython tree that is not in this repository.
 
 The Windows packer libraries in `lib/` are required next to the published
 binary as `LibProsperoPkg.Win05.dll` and `LibProsperoPkg.Win06.dll`.
