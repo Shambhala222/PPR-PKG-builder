@@ -1,4 +1,4 @@
-PPR-PKG Builder v0.8.2 for macOS by Shambhala222
+PPR-PKG Builder v0.8.3 for macOS by Shambhala222
 ==================================================
 
 This is the macOS port of Drakmor's and SvenGDK's PPR-PKG builder (Windows)
@@ -130,8 +130,8 @@ Skip PFSv3 input-data check
 
 Source / Output / Temporary
 ---------------------------
-Source      Game folder, exFAT image, ffpfsc image, or a .gp5.
-            Browse still accepts .exfat / .xfat and .ffpfsc / .ffpfc / .ffpfs.
+Source      Game folder, exFAT image (.exfat), ffpfsc image, or a .gp5.
+            Browse still accepts .exfat and .ffpfsc / .ffpfc / .ffpfs.
 Output      Folder for the finished .pkg. Must not sit inside Source,
             or the .pkg would be packed into itself.
 Free:       Output shows that disk (internal or external), free
@@ -155,17 +155,15 @@ Filled from sce_sys/param.json when possible.
 Change them only if they are wrong.
 Empty passcode = 32 zeros (normal debug / plaintext).
 
-If applicationDrmType is "free", the pack uses "standard" so the PS5
-does not show a lock. The original param.json in the dump is restored
-afterwards. Already-"standard" dumps are left alone.
+applicationDrmType is always packed as standard (free, upgradable, or
+any other value). The original param.json in the dump is restored
+afterwards. Already-"standard" dumps stay standard.
 
 
 Inspect & Unpack
 ----------------
-Open a .pkg to see title, Content ID, version, SDK, type, retail,
-outer encrypted, size and whether a key is needed. Unpack uses the
-current extractor (outer PFS, inner image, Sony folder layout).
-There is no Open Folder button.
+Open a .pkg and unpack the files. The same tab also unpacks an exFAT
+(.exfat) or FFPFSC image into a folder. There is no Open Folder button.
 
 
 SDK version + Override
@@ -230,8 +228,11 @@ Drakmor's SDK Fix v12
 Separate tab. Uses Drakmor's SDK Fix 12 tools through bundled Wine, not
 the Built-in Kraken packer.
 
-Needs a 96-byte sce_sys/keystone in the dump. The dump folder is not
-changed. Generated files go to Temporary / Output.
+Needs a 96-byte sce_sys/keystone and param.json. Source can be a game
+folder, an exFAT image (.exfat), or FFPFSC. exFAT is mounted first
+(same as Plain). FFPFSC cannot be mounted and is extracted first.
+Sony then packs the folder. The dump files are not modified. Generated
+files go to Temporary / Output.
 
 PlayGo chunks: 1 through 255, default 100 (same as the Windows Fix 12
 GUI). Compression -4 through 9, default 7. Optional reference PKG builds
@@ -241,8 +242,9 @@ attributePub from unpacked size; patch builds keep the dump value.
 Finder AppleDouble files (._*) and .DS_Store are left out of the GP5.
 Windows dumps do not have those files.
 
-Verify PKG / Extract PKG on this tab use the SDK publisher. Inspect
-(open a .pkg and unpack the files) stays on the Inspect tab.
+Verify PKG / Extract PKG on this tab use the SDK publisher first.
+Extract PKG that the publisher cannot open: use Inspect (open a .pkg
+and unpack the files). That tab also unpacks exFAT and FFPFSC.
 
 First SDK run may initialise Wine. That tab needs Rosetta on Apple
 Silicon.
@@ -259,7 +261,7 @@ Do not
 
 Apps
 ----
-PPR-PKG Builder.app         this version (0.8.2)
+PPR-PKG Builder.app         this version (0.8.3)
 fpkg-gui-0.6.5.2-MacOS.app  previous 0.6.5.2, leave it alone
 fpkg-gui-0.6.5.1-MacOS.app  previous 0.6.5.1, leave it alone
 fpkg-gui-0.6.5-MacOS.app    older 0.6.5, leave it alone

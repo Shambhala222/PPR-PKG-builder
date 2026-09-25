@@ -8,7 +8,8 @@ using System.Text.Json.Nodes;
 namespace LibProsperoPkg.Gui.Services;
 
 /// <summary>
-/// If <c>sce_sys/param.json</c> says <c>applicationDrmType: free</c>, rewrite it to
+/// If <c>sce_sys/param.json</c> has <c>applicationDrmType</c> other than
+/// <c>standard</c> (free, upgradable, and anything else), rewrite it to
 /// <c>standard</c> for the pack so the PS5 does not show a lock. The original file
 /// is written back afterwards, byte for byte.
 /// </summary>
@@ -28,32 +29,36 @@ internal sealed class ParamDrmPatch : IDisposable
     {
         string? path = FindParamJson(sourceRoot);
         return path is not null && TryReadToken(path, out string? token)
-            && IsFree(token);
+            && NeedsForceStandard(token);
     }
 
     public static ParamDrmPatch? ApplyIfFree(string sourceRoot, Action<string> log)
+        => ApplyIfNeeded(sourceRoot, log);
+
+    public static ParamDrmPatch? ApplyIfNeeded(string sourceRoot, Action<string> log)
     {
         string? path = FindParamJson(sourceRoot);
         if (path is null)
             return null;
 
-        if (!TryReadToken(path, out string? token) || !IsFree(token))
+        if (!TryReadToken(path, out string? token) || !NeedsForceStandard(token))
             return null;
 
+        string shown = string.IsNullOrWhiteSpace(token) ? "(missing)" : token.Trim();
         if (!CanWrite(path))
         {
-            log("param.json applicationDrmType is \"free\", but the file is not writable — packing it as-is.");
+            log("param.json applicationDrmType is \"" + shown + "\", but the file is not writable - packing it as-is.");
             return null;
         }
 
         byte[] original = File.ReadAllBytes(path);
         if (!TryWriteStandard(path, original))
         {
-            log("param.json applicationDrmType is \"free\", but it could not be rewritten — packing it as-is.");
+            log("param.json applicationDrmType is \"" + shown + "\", but it could not be rewritten - packing it as-is.");
             return null;
         }
 
-        log("param.json applicationDrmType is \"free\" — packing as \"standard\" so the game is not locked on PS5.");
+        log("param.json applicationDrmType is \"" + shown + "\" - packing as \"standard\" so the game is not locked on PS5.");
         return new ParamDrmPatch(path, original);
     }
 
@@ -131,8 +136,11 @@ internal sealed class ParamDrmPatch : IDisposable
         }
     }
 
-    private static bool IsFree(string? token)
-        => string.Equals(token?.Trim(), "free", StringComparison.OrdinalIgnoreCase);
+    private static bool IsStandard(string? token)
+        => string.Equals(token?.Trim(), "standard", StringComparison.OrdinalIgnoreCase);
+
+    private static bool NeedsForceStandard(string? token)
+        => !IsStandard(token);
 
     private static bool CanWrite(string path)
     {

@@ -657,7 +657,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         }
         if (kind == "exfat")
         {
-            string? path = await _storage.OpenFileAsync(T("pick_exfat"), T("exfat_filter"), ["exfat", "xfat"]);
+            string? path = await _storage.OpenFileAsync(T("pick_exfat"), T("exfat_filter"), ["exfat"]);
             if (!string.IsNullOrEmpty(path))
                 SourceFolder = path;
             return;

@@ -776,8 +776,16 @@ public static class ProsperoPkgBuilder
         s.Position = (long)pkg.Header.pfs_image_offset;
         s.ReadExactly(image);
 
-        var (sbOffset, sblockDigest) = ProsperoImageDigests.ComputeSblockDigestFromImage(image);
+        int lastScan = -1;
+        var (sbOffset, sblockDigest) = ProsperoImageDigests.ComputeSblockDigestFromImage(image, reportPercent: pct =>
+        {
+            if (pct == lastScan)
+                return;
+            lastScan = pct;
+            log($"Outer SHA3 superblock scan {pct}%");
+        });
         pkg.Header.pfs_image_digest = sblockDigest ?? ProsperoImageDigests.Sha3_256(image);
+        log("Outer SHA3 complete.");
 
         // CNT+0x4A0 image_seed: mirror the exact 16-byte AES-XTS crypt seed baked into the outer superblock
         // (superblock+0x370) — the same seed used to derive the image encryption keys — so the header's
@@ -804,7 +812,9 @@ public static class ProsperoPkgBuilder
         // Write the body (entries) now so the per-entry hashes can be computed from the stream.
         var writer = new ProsperoCntWriter(s);
         writer.WriteBody(pkg, props.ContentId, props.Passcode);
+        log("Calculating CNT SHA3-256...");
         CalcBodyDigests(pkg, s);
+        log("CNT SHA3 complete.");
 
         // CNT+0x520 descriptor digest (best-effort): a SHA3-256 digest over each of the two CNT regions the 0x510 descriptor
         // locates (the IMAGE_KEY entry and the mandatory/imagedigs entry), read as on-disk bytes now that the

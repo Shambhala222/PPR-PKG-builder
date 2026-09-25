@@ -176,6 +176,27 @@ internal sealed class BuildProgressTracker
                 return;
             }
 
+            if (Contains(text, "Outer SHA3 superblock scan") || Contains(text, "Outer SHA3 complete"))
+            {
+                SetStage(4, Contains(text, "complete") ? 100 : ParsePercent(text) ?? _stagePercent, "stage_outer_digest");
+                _silentWork = "Outer SHA3";
+                return;
+            }
+
+            if (Contains(text, "Calculating CNT SHA3") || Contains(text, "CNT SHA3 complete"))
+            {
+                SetStage(5, Contains(text, "complete") ? 100 : ParsePercent(text) ?? 0, "stage_cnt_digest");
+                _silentWork = "CNT SHA3";
+                return;
+            }
+
+            if (Contains(text, "PlayGo CRC"))
+            {
+                SetStage(7, ParsePercent(text) ?? _stagePercent, "stage_si");
+                _silentWork = "SI / PlayGo CRC";
+                return;
+            }
+
             if (Contains(text, "Compact intermediate CNT"))
             {
                 SetStage(5, ParsePercent(text) ?? _stagePercent, "stage_cnt");
@@ -562,6 +583,7 @@ internal sealed class BuildProgressTracker
         _ioDisplayCurrent = within;
         _expectedBytes = packed;
         _stagePercent = Math.Min(99.4, 100.0 * within / packed);
+        ApplySilentRoundLabels(round);
 
         string kind = string.IsNullOrEmpty(_silentWork)
             ? _stage switch
@@ -583,6 +605,50 @@ internal sealed class BuildProgressTracker
         }
         else
             _etaText = roundText;
+    }
+
+    private void ApplySilentRoundLabels(int round)
+    {
+        int stage;
+        string key;
+        string work;
+        if (round <= 1)
+        {
+            stage = 4;
+            key = "stage_outer_digest";
+            work = "Outer SHA3";
+        }
+        else if (round == 2)
+        {
+            stage = 5;
+            key = "stage_cnt_digest";
+            work = "CNT SHA3";
+        }
+        else if (round == 3)
+        {
+            stage = 6;
+            key = "stage_fih";
+            work = "FIH";
+        }
+        else
+        {
+            stage = 7;
+            key = "stage_si";
+            work = "SI / PlayGo CRC";
+        }
+
+        if (stage < _stage)
+            return;
+
+        if (stage > _stage)
+        {
+            _stage = stage;
+            _silentForStage = stage;
+            _lastLoggedPercent = -1;
+        }
+
+        _detailKey = key;
+        _silentWork = work;
     }
 
     private void BeginSilentIfNeeded()

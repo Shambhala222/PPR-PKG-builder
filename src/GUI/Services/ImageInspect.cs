@@ -1,6 +1,6 @@
 namespace LibProsperoPkg.Gui.Services;
 
-internal sealed class ImageInspect
+public sealed class ImageInspect
 {
 	public string Kind { get; init; } = "";
 

@@ -20,12 +20,12 @@ Packing options are explained in `README-PACK.txt`.
 
 ## Download and run
 
-Download `PPR-PKG-builder-0.8.2-macos-arm64.zip` from
+Download `PPR-PKG-builder-0.8.3-macos-arm64.zip` from
 [Releases](https://github.com/Shambhala222/PPR-PKG-builder/releases).
 After extraction:
 
 ```
-PPR-PKG-builder-0.8.2-macos-arm64/
+PPR-PKG-builder-0.8.3-macos-arm64/
   PPR-PKG Builder.app
   README.md
   README-PACK.txt

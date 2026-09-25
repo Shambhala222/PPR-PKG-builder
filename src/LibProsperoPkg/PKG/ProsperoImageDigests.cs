@@ -332,15 +332,28 @@ public static class ProsperoImageDigests
     /// metadata superblock block is left plaintext on disk, so it is found even in the encrypted image.
     /// Returns the byte offset within <paramref name="image"/>, or -1 if not found.
     /// </summary>
-    public static int LocateSuperblock(ReadOnlySpan<byte> image, int blockSize = BlockSize)
+    public static int LocateSuperblock(ReadOnlySpan<byte> image, int blockSize = BlockSize, Action<int>? reportPercent = null)
     {
         if (blockSize <= 0x10) return -1;
+        int lastPct = -1;
+        long usable = image.Length - (image.Length % blockSize);
         for (int off = 0; off + blockSize <= image.Length; off += blockSize)
         {
+            if (reportPercent is not null && usable > 0)
+            {
+                int pct = (int)(100.0 * (off + blockSize) / usable);
+                if (pct > 100) pct = 100;
+                if (pct != lastPct)
+                {
+                    lastPct = pct;
+                    reportPercent(pct);
+                }
+            }
             if (BinaryPrimitives.ReadUInt64LittleEndian(image.Slice(off, 8)) == 2UL &&
                 image.Slice(off + 8, 4).SequenceEqual(SuperblockMagic))
                 return off;
         }
+        reportPercent?.Invoke(100);
         return -1;
     }
 
@@ -349,9 +362,9 @@ public static class ProsperoImageDigests
     /// and returns its offset (within the image) and the game/sblock digest (SHA3-256 of that block).
     /// Returns <c>(-1, null)</c> when no superblock is present.
     /// </summary>
-    public static (int Offset, byte[]? Digest) ComputeSblockDigestFromImage(ReadOnlySpan<byte> image, int blockSize = BlockSize)
+    public static (int Offset, byte[]? Digest) ComputeSblockDigestFromImage(ReadOnlySpan<byte> image, int blockSize = BlockSize, Action<int>? reportPercent = null)
     {
-        int off = LocateSuperblock(image, blockSize);
+        int off = LocateSuperblock(image, blockSize, reportPercent);
         if (off < 0) return (-1, null);
         return (off, ComputeSblockDigest(image.Slice(off, BlockSize)));
     }

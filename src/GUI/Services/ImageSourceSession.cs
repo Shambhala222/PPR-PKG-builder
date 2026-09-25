@@ -9,7 +9,7 @@ using LibProsperoPkg.Util;
 
 namespace LibProsperoPkg.Gui.Services;
 
-internal sealed class ImageSourceSession : IDisposable
+public sealed class ImageSourceSession : IDisposable
 {
 	private readonly string? _mountDevice;
 
@@ -48,11 +48,7 @@ internal sealed class ImageSourceSession : IDisposable
 			return false;
 		}
 		string extension = Path.GetExtension(path);
-		if (!extension.Equals(".exfat", StringComparison.OrdinalIgnoreCase))
-		{
-			return extension.Equals(".xfat", StringComparison.OrdinalIgnoreCase);
-		}
-		return true;
+		return extension.Equals(".exfat", StringComparison.OrdinalIgnoreCase);
 	}
 
 	public static bool IsPfsContainerPath(string path)
@@ -139,14 +135,15 @@ internal sealed class ImageSourceSession : IDisposable
 			List<ProsperoPfsReader.File> list = new ProsperoPfsReader(memoryReader, 0uL, null, null, null, 0L).GetAllFiles().ToList();
 			int count = list.Count;
 			bool hasEboot = list.Any((ProsperoPfsReader.File f) => f.name.Equals("eboot.bin", StringComparison.OrdinalIgnoreCase));
+			ImageInspect nested = TryInspectNestedExFat(list);
 			return new ImageInspect
 			{
 				Kind = "ffpfsc",
-				AppRoot = "",
-				Files = count,
-				HasEboot = hasEboot,
-				ParamJson = null,
-				IconPng = null
+				AppRoot = nested.AppRoot,
+				Files = nested.Files > 0 ? nested.Files : count,
+				HasEboot = nested.HasEboot || hasEboot,
+				ParamJson = nested.ParamJson,
+				IconPng = nested.IconPng
 			};
 		}
 		finally
@@ -211,6 +208,37 @@ internal sealed class ImageSourceSession : IDisposable
 		return inner.size;
 	}
 
+	public static int ExtractToFolder(string source, string dest, Action<string> log, Action<long, long>? progress, CancellationToken token)
+	{
+		token.ThrowIfCancellationRequested();
+		if (!File.Exists(source))
+			throw new FileNotFoundException("The source image does not exist.", source);
+		Directory.CreateDirectory(dest);
+		string kind = DetectKind(source);
+		if (kind == "exfat" || IsExFatPath(source))
+		{
+			log("Extracting the exFAT image.");
+			IMemoryReader reader = OpenLogicalReader(source, out long length, out IDisposable extra);
+			try
+			{
+				using ExFatImage image = ExFatImage.Open(reader, length);
+				image.ExtractAppFolder(dest, progress, log, token);
+			}
+			finally
+			{
+				DisposeLogical(reader, extra);
+			}
+		}
+		else
+		{
+			ExtractPfsContainerTo(source, dest, log, progress, token);
+		}
+
+		return Directory.Exists(dest)
+			? Directory.EnumerateFiles(dest, "*", SearchOption.AllDirectories).Count()
+			: 0;
+	}
+
 	public static ImageSourceSession OpenFolder(string folder)
 	{
 		return new ImageSourceSession(Path.GetFullPath(folder), readOnlyMount: false, "folder", null, null);
@@ -232,6 +260,95 @@ internal sealed class ImageSourceSession : IDisposable
 			return PrepareExFat(source, tempRoot, log, progress, token, forceExtract);
 		}
 		return PreparePfsContainer(source, tempRoot, log, progress, token);
+	}
+
+	private static void ExtractPfsContainerTo(string source, string dest, Action<string> log, Action<long, long>? progress, CancellationToken token)
+	{
+		log("Extracting the FFPFSC container.");
+		IMemoryReader memoryReader = OpenLogicalReader(source, out long length, out IDisposable extra);
+		try
+		{
+			if (!IsPfsMagic(memoryReader) && ExFatImage.FindVolumeBase(memoryReader, length) >= 0)
+			{
+				using ExFatImage image = ExFatImage.Open(memoryReader, length);
+				image.ExtractAppFolder(dest, progress, log, token);
+				return;
+			}
+
+			List<ProsperoPfsReader.File> list = new ProsperoPfsReader(memoryReader, 0uL, null, null, null, 0L).GetAllFiles().ToList();
+			if (list.Count == 0)
+				throw new InvalidDataException("The .ffpfsc container holds no file.");
+			ProsperoPfsReader.File inner = list.FirstOrDefault(f =>
+					f.name.EndsWith(".exfat", StringComparison.OrdinalIgnoreCase)
+					|| f.name.EndsWith(".xfat", StringComparison.OrdinalIgnoreCase))
+				?? list.OrderByDescending(f => f.size).First();
+			string tempInner = Path.Combine(Path.GetTempPath(), "ffpfsc-inner-" + Guid.NewGuid().ToString("N")[..8] + ".exfat");
+			inner.Save(tempInner, decompress: true);
+			try
+			{
+				using IMemoryReader innerReader = OpenLogicalReader(tempInner, out long innerLength, out IDisposable extra2);
+				try
+				{
+					using ExFatImage image = ExFatImage.Open(innerReader, innerLength);
+					image.ExtractAppFolder(dest, progress, log, token);
+				}
+				finally
+				{
+					DisposeLogical(innerReader, extra2);
+				}
+			}
+			finally
+			{
+				try { File.Delete(tempInner); } catch { }
+			}
+		}
+		finally
+		{
+			DisposeLogical(memoryReader, extra);
+		}
+	}
+
+	private static ImageInspect TryInspectNestedExFat(List<ProsperoPfsReader.File> list)
+	{
+		if (list.Count == 0)
+			return new ImageInspect { Kind = "ffpfsc" };
+		ProsperoPfsReader.File inner = list.FirstOrDefault(f =>
+				f.name.EndsWith(".exfat", StringComparison.OrdinalIgnoreCase)
+				|| f.name.EndsWith(".xfat", StringComparison.OrdinalIgnoreCase))
+			?? list.OrderByDescending(f => f.size).First();
+		try
+		{
+			IMemoryReader view = inner.GetView();
+			long viewLength = inner.size;
+			if (inner.size >= 4 && inner.flags.HasFlag(ProsperoInodeFlags.compressed))
+			{
+				var magic = new byte[4];
+				view.Read(0, magic, 0, 4);
+				if (magic[0] == (byte)'P' && magic[1] == (byte)'F' && magic[2] == (byte)'S' && magic[3] == (byte)'C')
+				{
+					var pfsc = new ProsperoPfscReader(view);
+					view = pfsc;
+					viewLength = pfsc.DataLength;
+				}
+			}
+			if (ExFatImage.FindVolumeBase(view, viewLength) < 0)
+				return new ImageInspect { Kind = "ffpfsc" };
+			using ExFatImage image = ExFatImage.Open(view, viewLength);
+			ExFatInspect inspect = image.Inspect();
+			return new ImageInspect
+			{
+				Kind = "ffpfsc",
+				AppRoot = inspect.AppRoot,
+				Files = inspect.Files,
+				HasEboot = inspect.HasEboot,
+				ParamJson = inspect.ParamJson,
+				IconPng = inspect.IconPng
+			};
+		}
+		catch
+		{
+			return new ImageInspect { Kind = "ffpfsc" };
+		}
 	}
 
 	private static ImageSourceSession PrepareExFat(string source, string tempRoot, Action<string> log, Action<long, long>? progress, CancellationToken token, bool forceExtract)

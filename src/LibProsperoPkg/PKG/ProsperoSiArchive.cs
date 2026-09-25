@@ -288,7 +288,8 @@ public static class ProsperoSiArchive
         byte[]? napsMeta18 = null,
         byte[]? napsMeta300 = null,
         byte[]? playGoChunkCrc = null,
-        byte[]? finalizedMountImage = null)
+        byte[]? finalizedMountImage = null,
+        Action<string>? log = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(contentId);
         ArgumentNullException.ThrowIfNull(pfsImageXml);
@@ -297,7 +298,7 @@ public static class ProsperoSiArchive
         // playgo-chunk.crc reproducibly (CRC-32C of each 64KiB block). An explicitly supplied blob
         // always wins so supplied keyed inputs are preserved.
         playGoChunkCrc ??= finalizedMountImage is { Length: > 0 }
-            ? ProsperoPlayGo.BuildChunkCrc(finalizedMountImage)
+            ? ProsperoPlayGo.BuildChunkCrc(finalizedMountImage, log)
             : null;
 
         var members = new List<ProsperoSiMember>();
@@ -355,7 +356,7 @@ public static class ProsperoSiArchive
     /// <param name="warnings">Optional sink for any all-zero-placeholder notices from the XML builder.</param>
     public static byte[] BuildDebugSiSegment(
         ProsperoPfsImageXmlOptions pfsImageXml, byte[]? playGoChunkDat, byte[] mountImage,
-        long innerImageSize = 0, ICollection<string>? warnings = null)
+        long innerImageSize = 0, ICollection<string>? warnings = null, Action<string>? log = null)
     {
         ArgumentNullException.ThrowIfNull(pfsImageXml);
         ArgumentNullException.ThrowIfNull(mountImage);
@@ -411,7 +412,8 @@ public static class ProsperoSiArchive
             napsMeta18: napsMeta18,
             napsMeta300: napsMeta300,
             playGoChunkCrc: null,
-            finalizedMountImage: mountImage); // computes playgo-chunk.crc reproducibly (CRC-32C).
+            finalizedMountImage: mountImage,
+            log: log);
 
         return WriteZip(members);
     }

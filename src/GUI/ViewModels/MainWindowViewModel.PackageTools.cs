@@ -246,10 +246,30 @@ public sealed partial class MainWindowViewModel
 
     private async Task BrowsePackageFile(string title, Action<string> assign)
     {
-        string? path = await _storage.OpenFileAsync(title, "Package", ["pkg"]);
+        string? path = await _storage.OpenFileAsync(
+            title,
+            UiText.Get(_language, "package_filter"),
+            ["pkg", "exfat", "ffpfsc", "ffpfs", "ffpfc"]);
         if (!string.IsNullOrWhiteSpace(path))
             assign(path);
     }
+
+    private static bool IsFinalizedPackage(string path)
+    {
+        try
+        {
+            ProsperoPkgType? type = ProsperoPkgReader.DetectType(path);
+            return type is ProsperoPkgType.FullRetail or ProsperoPkgType.FullDebug;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsUnpackImage(string path)
+        => ImageSourceSession.IsImagePath(path)
+            || (File.Exists(path) && ImageSourceSession.DetectKind(path) is "exfat" or "ffpfsc");
 
     private async Task AutoInspectPackageAsync()
     {
@@ -292,8 +312,9 @@ public sealed partial class MainWindowViewModel
         ProgressValue = 0;
         ProgressLabel = "0%";
         Append(T("unpack_started"));
-        Append(T("unpack_layout"));
-        Append(T("unpack_resume"));
+        Append(IsFinalizedPackage(package) ? T("unpack_layout") : T("unpack_layout_image"));
+        if (IsFinalizedPackage(package))
+            Append(T("unpack_resume"));
         Append(T("package_prefix") + package);
         Append(T("output_prefix") + output);
         if (!string.Equals(Path.GetFullPath(parent), Path.GetFullPath(output), StringComparison.OrdinalIgnoreCase))
@@ -304,35 +325,34 @@ public sealed partial class MainWindowViewModel
             int extracted = await Task.Run(() =>
             {
                 token.ThrowIfCancellationRequested();
-                long lastUiWritten = -1;
-                long lastUiTicks = 0;
-                var options = new ProsperoExtractionOptions
+                Action<long, long> report = (written, total) =>
                 {
-                    ReportProgress = (written, total) =>
+                    token.ThrowIfCancellationRequested();
+                    double pct = total > 0 ? 100.0 * written / total : 0;
+                    if (pct > 100)
+                        pct = 100;
+                    string label = pct < 10
+                        ? pct.ToString("0.0", CultureInfo.CurrentCulture) + "%"
+                        : pct.ToString("0", CultureInfo.CurrentCulture) + "%";
+                    Dispatcher.UIThread.Post(() =>
                     {
-                        token.ThrowIfCancellationRequested();
-                        long now = Environment.TickCount64;
-                        bool force = written >= total || lastUiWritten < 0;
-                        if (!force && written == lastUiWritten)
-                            return;
-                        if (!force && now - lastUiTicks < 120 && written - lastUiWritten < Math.Max(1, total / 400))
-                            return;
-                        lastUiWritten = written;
-                        lastUiTicks = now;
-                        double pct = total > 0 ? 100.0 * written / total : 0;
-                        if (pct > 100)
-                            pct = 100;
-                        string label = pct < 10
-                            ? pct.ToString("0.0", CultureInfo.CurrentCulture) + "%"
-                            : pct.ToString("0", CultureInfo.CurrentCulture) + "%";
-                        Dispatcher.UIThread.Post(() =>
-                        {
-                            IsProgressIndeterminate = false;
-                            ProgressValue = pct;
-                            ProgressLabel = label;
-                        });
-                    },
+                        IsProgressIndeterminate = false;
+                        ProgressValue = pct;
+                        ProgressLabel = label;
+                    });
                 };
+
+                if (IsUnpackImage(package) && !IsFinalizedPackage(package))
+                {
+                    return ImageSourceSession.ExtractToFolder(
+                        package, output, line =>
+                        {
+                            token.ThrowIfCancellationRequested();
+                            Dispatcher.UIThread.Post(() => Append(line));
+                        }, report, token);
+                }
+
+                var options = new ProsperoExtractionOptions { ReportProgress = report };
                 ProsperoPackageManifest manifest = ProsperoPackageExtractor.Extract(
                     package, output, ProsperoExtractionKey.FromPasscode(passcode), options, line =>
                     {
@@ -399,16 +419,38 @@ public sealed partial class MainWindowViewModel
             await Task.Run(() =>
             {
                 token.ThrowIfCancellationRequested();
+                if (IsUnpackImage(package) && !IsFinalizedPackage(package))
+                {
+                    ImageInspect? image = ImageSourceSession.Inspect(package);
+                    long size = new FileInfo(package).Length;
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        InspectType = image?.Kind ?? ImageSourceSession.DetectKind(package);
+                        InspectRetail = T("no");
+                        InspectEncrypted = T("no");
+                        InspectSize = FormatPackageSize(size);
+                        InspectKey = T("no");
+                        InspectContentId = "";
+                    });
+                    if (!string.IsNullOrWhiteSpace(image?.ParamJson))
+                    {
+                        try { ApplyParamPreview(ProsperoParam.Parse(image.ParamJson)); }
+                        catch { }
+                    }
+                    Dispatcher.UIThread.Post(() => SetPackageIcon(image?.IconPng));
+                    return;
+                }
+
                 ProsperoPackageExtractionInfo info = ProsperoPackageExtractor.Inspect(package);
                 ProsperoPkg pkg = ProsperoPkgReader.Read(package);
-                long size = new FileInfo(package).Length;
+                long pkgSize = new FileInfo(package).Length;
                 Dispatcher.UIThread.Post(() =>
                 {
                     InspectContentId = info.ContentId ?? pkg.Header?.ContentId ?? "";
                     InspectType = pkg.Type.ToString();
                     InspectRetail = info.IsRetail ? T("yes") : T("no");
                     InspectEncrypted = info.OuterEncrypted ? T("yes") : T("no");
-                    InspectSize = FormatPackageSize(size);
+                    InspectSize = FormatPackageSize(pkgSize);
                     InspectKey = info.RequiresSuppliedKey ? T("yes") : T("no");
                 });
 
@@ -480,6 +522,20 @@ public sealed partial class MainWindowViewModel
         if (!string.IsNullOrWhiteSpace(InspectTitle)
             && !string.IsNullOrWhiteSpace(GameDumpFolderName.ResolveTitleId(_inspectTitleId, InspectContentId)))
             return;
+        if (IsUnpackImage(package) && !IsFinalizedPackage(package))
+        {
+            ImageInspect? image = ImageSourceSession.Inspect(package);
+            if (string.IsNullOrWhiteSpace(image?.ParamJson))
+                return;
+            try
+            {
+                ApplyParamPreview(ProsperoParam.Parse(image.ParamJson));
+            }
+            catch
+            {
+            }
+            return;
+        }
         ProsperoParam? param = PackageEntryReader.TryReadParam(package, passcode);
         if (param is null)
             return;

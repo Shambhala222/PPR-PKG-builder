@@ -47,19 +47,29 @@ public static class ProsperoPlayGo
     /// </summary>
     /// <param name="finalizedMountImage">The finalized mount image bytes (FIH header + PFS image + embedded CNT).</param>
     /// <returns>The <c>playgo-chunk.crc</c> payload: 4 bytes per 64KiB block.</returns>
-    public static byte[] BuildChunkCrc(ReadOnlySpan<byte> finalizedMountImage)
+    public static byte[] BuildChunkCrc(ReadOnlySpan<byte> finalizedMountImage, Action<string>? log = null)
     {
         if (finalizedMountImage.Length == 0)
             return [];
 
         int blockCount = (finalizedMountImage.Length + ChunkCrcBlockSize - 1) / ChunkCrcBlockSize;
         byte[] crc = new byte[blockCount * 4];
+        int lastPct = -1;
         for (int i = 0; i < blockCount; i++)
         {
             int start = i * ChunkCrcBlockSize;
             int len = Math.Min(ChunkCrcBlockSize, finalizedMountImage.Length - start);
             uint value = ProsperoCrc32C.Compute(finalizedMountImage.Slice(start, len));
             BinaryPrimitives.WriteUInt32LittleEndian(crc.AsSpan(i * 4), value);
+            if (log is not null && blockCount > 0)
+            {
+                int pct = (int)(100.0 * (i + 1) / blockCount);
+                if (pct != lastPct)
+                {
+                    lastPct = pct;
+                    log($"PlayGo CRC {pct}%");
+                }
+            }
         }
         return crc;
     }

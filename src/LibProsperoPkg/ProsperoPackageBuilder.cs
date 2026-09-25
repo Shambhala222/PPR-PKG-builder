@@ -498,8 +498,12 @@ public static class ProsperoPackageBuilder
             // and PlayGo chunk descriptor were captured during the CNT build above.
             Func<byte[], byte[]>? siFactory = siInputs is null
                 ? null
-                : mountImage => LibProsperoPkg.PKG.ProsperoSiArchive.BuildDebugSiSegment(
-                    siInputs.Xml, siInputs.PlayGoChunkDat, mountImage, siInputs.InnerImageSize, warnings);
+                : mountImage =>
+                {
+                    log("Building SI (PlayGo CRC)...");
+                    return LibProsperoPkg.PKG.ProsperoSiArchive.BuildDebugSiSegment(
+                        siInputs.Xml, siInputs.PlayGoChunkDat, mountImage, siInputs.InnerImageSize, warnings, log);
+                };
 
             var fihWarnings = LibProsperoPkg.PKG.ProsperoFihBuilder.BuildFromCnt(
                 cntPath, finalPath, LibProsperoPkg.PKG.ProsperoFihVariant.Debug, log,

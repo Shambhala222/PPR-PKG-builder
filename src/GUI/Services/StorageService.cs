@@ -25,6 +25,7 @@ public sealed class StorageService : IStorageService
                 {
                     Patterns = [.. extensions.Select(e => "*." + e.TrimStart('.'))],
                 },
+                new FilePickerFileType("All files") { Patterns = ["*", "*.*"] },
             ];
         }
 

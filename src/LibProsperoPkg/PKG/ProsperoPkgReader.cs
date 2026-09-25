@@ -43,12 +43,9 @@ public static class ProsperoPkgReader
         {
             stream.Position = 5;
             int signedByte = stream.ReadByte();
-            return signedByte switch
-            {
-                0x80 => ProsperoPkgType.FullRetail,
-                0x00 => ProsperoPkgType.FullDebug,
-                _ => null,
-            };
+            // Homebrew / other-tool fPKGs often stamp a signed byte other than 0x00/0x80.
+            // Treat any FIH image as extractable; only 0x80 is labelled retail.
+            return signedByte == 0x80 ? ProsperoPkgType.FullRetail : ProsperoPkgType.FullDebug;
         }
 
         return null;
